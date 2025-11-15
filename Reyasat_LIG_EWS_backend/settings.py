@@ -92,7 +92,17 @@ DATABASES = {
         'PASSWORD': 'surya@18', # Use the password you created
         'HOST': 'localhost',      # If running locally
         'PORT': '5432',           # Default PostgreSQL port
-    }
+        'OPTIONS': { 
+            'connect_timeout': 10, 
+            'options': '-c statement_timeout=30000 -c lock_timeout=10000' 
+        },
+        'CONN_MAX_AGE': 600,
+        'TEST': {
+            'NAME': 'test_scheme_1_db',
+        },
+    },
+    
+    
 }
 
 
