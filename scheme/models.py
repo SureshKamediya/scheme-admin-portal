@@ -5,6 +5,7 @@ from django.db import transaction
 import os
 from django.core.files.base import ContentFile
 from django.db.models import F
+import time
 
 # Create your models here.
 
@@ -436,13 +437,8 @@ class Application(models.Model):
         if self.pk is None:
             with transaction.atomic():
                 print("inside the atomic to save data")
-                scheme = Scheme.objects.select_for_update().get(id=self.scheme_id)
+                scheme = Scheme.objects.select_for_update(nowait=False).get(id=self.scheme_id)
                 self.application_number = scheme.next_application_number
-
-                # scheme.next_application_number = F('next_application_number') + 1
-
-
-                # scheme.save(update_fields=['next_application_number'])
 
                 Scheme.objects.filter(id=scheme.id).update(
                     next_application_number=F('next_application_number') + 1
@@ -452,9 +448,8 @@ class Application(models.Model):
 
                 # IMPORTANT: Save the application inside the same transaction
                 super().save(*args, **kwargs)
-
-            return  # Prevent second save()
-        super().save(*args, **kwargs)
+        else:
+            super().save(*args, **kwargs)
 
         self.refresh_from_db()
         # rename the files to associate them with scheme id
