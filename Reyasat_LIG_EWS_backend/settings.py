@@ -41,7 +41,8 @@ INSTALLED_APPS = [
 
     'import_export',
     'scheme',
-    'applications'
+    'applications',
+    'OTP',
 ]
 
 MIDDLEWARE = [
@@ -149,3 +150,26 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+OTP_SETTINGS = {
+    'GENERATION_LIMIT': 3,
+    'GENERATION_WINDOW_MINUTES': 15,
+    
+    'VERIFICATION_LIMIT': 5,
+    
+    'RESEND_LIMIT': 3,
+    'RESEND_WINDOW_MINUTES': 60,
+    
+    'RESEND_COOLDOWN_SECONDS': 30,  # Min time between resends
+    
+    'IP_GLOBAL_LIMIT': 20,
+    'IP_GLOBAL_WINDOW_MINUTES': 60,
+    
+    'ACCOUNT_LOCK_DURATION_MINUTES': 60,
+    
+    'CODE_LENGTH': 6,
+    'EXPIRY_MINUTES': 5,
+    
+    'ENABLE_PROGRESSIVE_DELAYS': True,
+}
