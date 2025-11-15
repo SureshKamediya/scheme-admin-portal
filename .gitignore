@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+env/
+venv/
+.virtualenv/
+.env
+.venv
+
+# Django
+*.log
+staticfiles/
+static/
+media/
+media_root/
+mediafiles/
+
+# SQLite database
+db.sqlite3
+db.sqlite3-journal
+
+# Migrations (optional — usually keep these)
+# */migrations/*
+# !*/migrations/__init__.py
+
+# VS Code
+.vscode/
+.code-workspace
+
+# PyCharm
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Byte-compiled / cache
+*.mo
+*.pot
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# pytest / coverage
+.pytest_cache/
+coverage/
+htmlcov/
+*,cover
+
+# MyPy
+.mypy_cache/
+
+# dotenv
+*.env
+
+# Local configuration
+settings_local.py
+settings_dev.py
+
+# Backup files
+*.bak
+*.swap
+*.tmp
