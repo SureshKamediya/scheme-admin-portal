@@ -403,33 +403,51 @@ class application_pdf_generator():
         """
 
     def create_pdf(self):
-        self.application.scheme_company = self.application.scheme__company
-        self.application.scheme_name = self.application.scheme__name
-        self.application.scheme_address = self.application.scheme__address
+        self.application.scheme_company = self.application.scheme.company
+        self.application.scheme_name = self.application.scheme.name
+        self.application.scheme_address = self.application.scheme.address
 
         html = self.generate_acknowledgement_html(data = self.application)
-        file_name = f"Acknowledgement_{self.application.scheme.name}_{self.application.application_number}"
+        print('html is genrated')
+        pdf_bytes = self.html_content_to_pdf_bytes(html)
+        print('pdf bytes is genrated')
+
+
+        
 
         # write htmt just for testing, else should not
         if settings.DEBUG :
             import os
-            
+            html_path =  os.path.join(settings.MEDIA_ROOT, f"Acknowledgement_{self.application.scheme.name}_{self.application.application_number}", '.html')   
             try:
-                file_path = os.path.join(settings.MEDIA_ROOT, filename)
-
                 # Ensure directory exists
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                os.makedirs(os.path.dirname(html_path), exist_ok=True)
+                if isinstance(html, bytes):
+                    print('byte')
+                elif isinstance(html, str):
+                    print('str')
+                else:
+                    print("other")
+                # with open(html_path, "w", encoding="utf-8") as f:
+                #     if isinstance(html, bytes):
+                #         f.write(html.decode('utf-8'))
+                #     else:
+                #         f.write(html)
 
                 # Write file
-                with open(file_path, "w", encoding="utf-8") as f:
+                with open(html_path, "w", encoding="utf-8") as f:
                     f.write(html)
+                
+                print('written html file')
 
             except Exception as e:
                 # Log and continue without crashing
                 print(f"Error saving HTML file: {e}")
+            
+            # pdf_path = os.path.join(settings.MEDIA_ROOT, f"Acknowledgement_{self.application.scheme.name}_{self.application.application_number}", '.pdf')
 
 
-        pdf_bytes = self.html_content_to_pdf_bytes(html)
+        
 
         return pdf_bytes
 

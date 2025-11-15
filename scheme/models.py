@@ -6,7 +6,11 @@ import os
 from django.core.files.base import ContentFile
 from django.db.models import F
 import time
-
+from django.db import models
+from django.utils import timezone
+from datetime import timedelta
+import random
+import string
 # Create your models here.
 
 class Scheme(models.Model):
@@ -437,7 +441,7 @@ class Application(models.Model):
         if self.pk is None:
             with transaction.atomic():
                 print("inside the atomic to save data")
-                scheme = Scheme.objects.select_for_update(nowait=False).get(id=self.scheme_id)
+                scheme = Scheme.objects.select_for_update().get(id=self.scheme_id)
                 self.application_number = scheme.next_application_number
 
                 Scheme.objects.filter(id=scheme.id).update(
@@ -493,3 +497,91 @@ class Application(models.Model):
     
 
 
+
+import uuid
+
+class OTP(models.Model):
+    """
+    OTP Model for managing one-time passwords for applicant verification.
+    """
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        help_text="Unique UUID identifier"
+    )
+
+    code = models.CharField(
+        max_length=6,
+        editable=False,
+        help_text="6-digit verification code"
+    )
+
+    mobile_number = models.CharField(
+        max_length=10,
+        validators=[RegexValidator(regex=r'^\d{10}$', message='Enter a valid 10-digit mobile number')]
+    )
+    
+    expires_at = models.DateTimeField(
+        editable=False,
+        help_text="Timestamp after which the code becomes invalid"
+    )
+    
+    is_used = models.BooleanField(
+        default=False,
+        help_text="Tracks whether the OTP has already been used"
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Timestamp of when the OTP was generated"
+    )
+
+    class Meta:
+        verbose_name = 'OTP'
+        verbose_name_plural = 'OTPs'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"OTP for {self.application} - {self.code}"
+
+    def save(self, *args, **kwargs):
+        
+        # Set expiration time if not set (default: 5 minutes from now)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=5)
+        
+        # Generate OTP code if not present
+        if not self.code:
+            self.code = self.generate_code()
+        
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def generate_cuid():
+        """
+        Generate a cuid-like unique identifier.
+        Simplified version - consider using a library like 'cuid' for production.
+        """
+        timestamp = str(int(timezone.now().timestamp() * 1000))
+        random_part = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+        return f"c{timestamp[-8:]}{random_part}"
+
+    @staticmethod
+    def generate_code():
+        """Generate a random 6-digit OTP code."""
+        return ''.join(random.choices(string.digits, k=6))
+
+    def is_valid(self):
+        """
+        Check if the OTP is valid (not expired and not used).
+        """
+        return (
+            not self.is_used and
+            timezone.now() < self.expires_at
+        )
+
+    def mark_as_used(self):
+        """Mark the OTP as used."""
+        self.is_used = True
+        self.save(update_fields=['is_used'])

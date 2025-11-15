@@ -69,9 +69,11 @@ class ApplicationAPIView(APIView):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    def get(self, request):
+    
+class ApplicationPDFGetter(APIView): 
+    def post(self, request):
         """
-        Retrieve a single application by application_number
+        Retrieve a  application acknowledge pdf by application_number
         
         Body: {
             "application_number": "09098123456",
@@ -84,15 +86,15 @@ class ApplicationAPIView(APIView):
             404: Application not found
         """
         # Manually parse the body
-        import json
-        try:
-            data = json.loads(request.body.decode('utf-8')) if request.body else {}
-        except json.JSONDecodeError:
-            data ={}
-
+        # import json
+        # try:
+        #     data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        # except json.JSONDecodeError:
+        #     data ={}
+        # print(request.__dict__)
         print('application get is called')
         # Validate input data
-        serializer = PDFRequestSerializer(data=data)
+        serializer = PDFRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(
                 {"error": "Invalid input", "details": serializer.errors},
@@ -119,8 +121,10 @@ class ApplicationAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        print('now genrate the pdf bytes')
         # genrate the pdf bytes and return the pdf 
-        pdf_bytes = application_pdf_generator.create_pdf(application)
+        pdf_genrator = application_pdf_generator(application)
+        pdf_bytes = pdf_genrator.create_pdf()
         return Response(
             {
                 'message': 'Application retrieved successfully',
@@ -129,4 +133,5 @@ class ApplicationAPIView(APIView):
             status=status.HTTP_200_OK
         )
     
+
         
