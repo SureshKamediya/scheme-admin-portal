@@ -13,7 +13,6 @@ import random
 import string
 
 from storages.backends.s3boto3 import S3Boto3Storage
-from Reyasat_LIG_EWS_backend.storages import ProtectedMediaStorage
 # Create your models here.
 
 class Scheme(models.Model):
