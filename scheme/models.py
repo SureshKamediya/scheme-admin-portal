@@ -11,6 +11,9 @@ from django.utils import timezone
 from datetime import timedelta
 import random
 import string
+
+from storages.backends.s3boto3 import S3Boto3Storage
+from Reyasat_LIG_EWS_backend.storages import ProtectedMediaStorage
 # Create your models here.
 
 class Scheme(models.Model):
@@ -204,8 +207,8 @@ from decimal import Decimal
 from django.db import models, transaction
 from django.db.models import F
 
-
 class Application(models.Model):
+    
     # ID Type choices
     ID_TYPE_CHOICES = [
         ('AADHAR', 'Aadhar Card'),
@@ -333,9 +336,64 @@ class Application(models.Model):
     payee_account_holder_name = models.CharField(max_length=200)
     payee_bank_name = models.CharField(max_length=200)
     
+    # models.py or utils.py
+    def payment_proof_upload_path(instance, filename):
+        """
+        Generate dynamic upload path for payment proofs.
+        Path: applications/<scheme-name>/payment_proofs/<application_no>.<extension>
+        
+        Args:
+            instance: Application model instance
+            filename: Original uploaded filename
+            
+        Returns:
+            str: S3 path like 'applications/PM-KISAN/payment_proofs/APP001.jpg'
+        """
+        import os
+        from django.utils.text import slugify
+        
+        # Get file extension
+        ext = os.path.splitext(filename)[1].lower()  # e.g., '.jpg', '.pdf'
+        
+        # Get scheme name and make it URL-safe
+        scheme_name = slugify(instance.scheme.name)  # Converts spaces, special chars
+        
+        # Get application number
+        application_number = instance.application_number
+        
+        path = f'applications/{scheme_name}/payment_proofs/{instance.application_number}{ext}'
+        print(path)
+        # Build the path
+        return f'applications/{scheme_name}/payment_proofs/{instance.application_number}{ext}'
+
+
+    def identity_document_upload_path(instance, filename):
+        """Upload path for identity documents."""
+        import os
+        from django.utils.text import slugify
+        
+        ext = os.path.splitext(filename)[1].lower()
+        scheme_name = slugify(instance.scheme.name)
+        application_no = instance.application_no
+        
+        return f'applications/{scheme_name}/identity_documents/{application_no}{ext}'
+
+
+    def address_proof_upload_path(instance, filename):
+        """Upload path for address proofs."""
+        import os
+        from django.utils.text import slugify
+        
+        ext = os.path.splitext(filename)[1].lower()
+        scheme_name = slugify(instance.scheme.name)
+        application_no = instance.application_no
+        
+        return f'applications/{scheme_name}/address_proofs/{application_no}{ext}'
+    
     # Payment proof
     payment_proof = models.ImageField(
-        upload_to='payment_proofs/', 
+        upload_to=payment_proof_upload_path, 
+        storage=S3Boto3Storage(),
         verbose_name='Transaction Screenshot / DD Photo'
     )
     
