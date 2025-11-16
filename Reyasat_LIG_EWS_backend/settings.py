@@ -41,7 +41,8 @@ INSTALLED_APPS = [
 
     'import_export',
     'scheme',
-    'applications'
+    'applications',
+    'OTP',
 ]
 
 MIDDLEWARE = [
@@ -77,11 +78,32 @@ WSGI_APPLICATION = 'Reyasat_LIG_EWS_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'scheme_1_db',  # Use the DB name you created
+        'USER': 'suresh',    # Use the user you created
+        'PASSWORD': 'surya@18', # Use the password you created
+        'HOST': 'localhost',      # If running locally
+        'PORT': '5432',           # Default PostgreSQL port
+        'OPTIONS': { 
+            'connect_timeout': 10, 
+            'options': '-c statement_timeout=30000 -c lock_timeout=10000' 
+        },
+        'CONN_MAX_AGE': 600,
+        'TEST': {
+            'NAME': 'test_scheme_1_db',
+        },
+    },
+    
+    
 }
 
 
@@ -128,3 +150,26 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+OTP_SETTINGS = {
+    'GENERATION_LIMIT': 3,
+    'GENERATION_WINDOW_MINUTES': 15,
+    
+    'VERIFICATION_LIMIT': 5,
+    
+    'RESEND_LIMIT': 3,
+    'RESEND_WINDOW_MINUTES': 60,
+    
+    'RESEND_COOLDOWN_SECONDS': 30,  # Min time between resends
+    
+    'IP_GLOBAL_LIMIT': 20,
+    'IP_GLOBAL_WINDOW_MINUTES': 60,
+    
+    'ACCOUNT_LOCK_DURATION_MINUTES': 60,
+    
+    'CODE_LENGTH': 6,
+    'EXPIRY_MINUTES': 5,
+    
+    'ENABLE_PROGRESSIVE_DELAYS': True,
+}

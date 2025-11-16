@@ -12,38 +12,6 @@ from datetime import date, timedelta
 from decimal import Decimal
 from .tests import SchemeFactory
 
-# scheme = SchemeFactory.create()
-# print(scheme.next_application_number)
-# valid_application_data = {
-#             'scheme': scheme,
-#             'mobile_number': f'9876543210',
-#             'applicant_name': 'John Doe',
-#             'father_or_husband_name': 'Richard Doe',
-#             'dob': date(1990, 1, 1),
-#             'id_type': 'AADHAR',
-#             'id_number': '123456789012',
-#             'pan_number': 'ABCDE1234F',
-#             'permanent_address': '123 Main St, City',
-#             'permanent_address_pincode': '123456',
-#             'postal_address': '123 Main St, City',
-#             'postal_address_pincode': '123456',
-#             'email': 'john@example.com',
-#             'annual_income': 'UP_TO_3L',
-#             'payment_mode': 'UPI',
-#             'refund_bank_branch_address': 'Branch Address',
-#             'dd_date_or_transaction_date' : timezone.now(),
-#             'dd_amount' : Decimal(21000.00)
-#         }
-
-# application1 = Application.objects.create(**valid_application_data)
-# print(scheme.next_application_number, application1)
-
-# scheme = SchemeFactory.create()
-# valid_application_data['scheme'] = scheme
-# application2 = Application.objects.create(**valid_application_data)
-# print(application2)
-
-
 class SchemeFilesResource(resources.ModelResource):
 
     Scheme = fields.Field(
@@ -89,8 +57,204 @@ class SchemeFilesInline(admin.TabularInline):
     # readonly_fields = ('name',)  # Auto-populated based on file_choice
 
 
+from import_export import resources, fields
+from import_export.widgets import DateTimeWidget
+from .models import Scheme
+
+
+class SchemeResource(resources.ModelResource):
+    """
+    Resource class for exporting Scheme data
+    Configured for export-only operations
+    """
+    
+    # # Custom fields with better labels and formatting
+    # company = fields.Field(
+    #     column_name='Company',
+    #     attribute='get_company_display'
+    # )
+    
+    # name = fields.Field(
+    #     column_name='Scheme Name',
+    #     attribute='name'
+    # )
+    
+    # address = fields.Field(
+    #     column_name='Address',
+    #     attribute='address'
+    # )
+    
+    # phone = fields.Field(
+    #     column_name='Phone',
+    #     attribute='phone'
+    # )
+    
+    # # Application Number Settings
+    # application_number_start = fields.Field(
+    #     column_name='Application Number Start',
+    #     attribute='application_number_start'
+    # )
+    
+    # next_application_number = fields.Field(
+    #     column_name='Next Application Number',
+    #     attribute='next_application_number'
+    # )
+    
+    # # Plot Counts
+    # ews_plot_count = fields.Field(
+    #     column_name='EWS Plot Count',
+    #     attribute='ews_plot_count'
+    # )
+    
+    # lig_plot_count = fields.Field(
+    #     column_name='LIG Plot Count',
+    #     attribute='Lig_plot_count'
+    # )
+    
+    # total_plot_count = fields.Field(
+    #     column_name='Total Plot Count'
+    # )
+    
+    # # Reserved Rate
+    # reserved_rate = fields.Field(
+    #     column_name='Reserved Rate (%)',
+    #     attribute='reserved_rate'
+    # )
+    
+    # # Important Dates
+    # created_at = fields.Field(
+    #     column_name='Created At',
+    #     attribute='created_at',
+    #     widget=DateTimeWidget(format='%d-%m-%Y %H:%M:%S')
+    # )
+    
+    # application_open_date = fields.Field(
+    #     column_name='Application Open Date',
+    #     attribute='application_open_date',
+    #     widget=DateTimeWidget(format='%d-%m-%Y %H:%M:%S')
+    # )
+    
+    # application_close_date = fields.Field(
+    #     column_name='Application Close Date',
+    #     attribute='application_close_date',
+    #     widget=DateTimeWidget(format='%d-%m-%Y %H:%M:%S')
+    # )
+    
+    # successful_applicants_publish_date = fields.Field(
+    #     column_name='Successful Applicants Publish Date',
+    #     attribute='successful_applicants_publish_date',
+    #     widget=DateTimeWidget(format='%d-%m-%Y %H:%M:%S')
+    # )
+    
+    # appeal_end_date = fields.Field(
+    #     column_name='Appeal End Date',
+    #     attribute='appeal_end_date',
+    #     widget=DateTimeWidget(format='%d-%m-%Y %H:%M:%S')
+    # )
+    
+    # lottery_result_date = fields.Field(
+    #     column_name='Lottery Result Date',
+    #     attribute='lottery_result_date',
+    #     widget=DateTimeWidget(format='%d-%m-%Y %H:%M:%S')
+    # )
+    
+    # close_date = fields.Field(
+    #     column_name='Close Date',
+    #     attribute='close_date',
+    #     widget=DateTimeWidget(format='%d-%m-%Y %H:%M:%S')
+    # )
+    
+    # # Calculated fields
+    # total_applications = fields.Field(
+    #     column_name='Total Applications Received'
+    # )
+    
+    # current_status = fields.Field(
+    #     column_name='Current Status'
+    # )
+    
+    class Meta:
+        model = Scheme
+        # Disable imports
+        skip_unchanged = True
+        report_skipped = False
+        import_id_fields = []  # No import ID fields needed for export-only
+        
+        # Fields to export (in order)
+        fields = (
+            'name',
+            'company',
+            'address',
+            'phone',
+            'ews_plot_count',
+            'lig_plot_count',
+            'total_plot_count',
+            'reserved_rate',
+            'application_number_start',
+            'next_application_number',
+            'total_applications',
+            'created_at',
+            'application_open_date',
+            'application_close_date',
+            'successful_applicants_publish_date',
+            'appeal_end_date',
+            'lottery_result_date',
+            'close_date',
+            'current_status',
+        )
+        
+        # Export settings
+        export_order = fields
+        use_natural_foreign_keys = True
+    
+    def dehydrate_total_plot_count(self, scheme):
+        """Calculate total plot count"""
+        return scheme.ews_plot_count + scheme.Lig_plot_count
+    
+    def dehydrate_total_applications(self, scheme):
+        """Get total number of applications for this scheme"""
+        return scheme.applications.count()
+    
+    def dehydrate_current_status(self, scheme):
+        """Determine current status based on dates"""
+        from django.utils import timezone
+        now = timezone.now()
+        
+        if not scheme.application_open_date:
+            return "Coming Soon"
+        
+        if scheme.close_date and now > scheme.close_date:
+            return "Closed"
+        
+        if scheme.lottery_result_date and now > scheme.lottery_result_date:
+            return "Lottery Announced"
+        
+        if scheme.appeal_end_date and now > scheme.appeal_end_date:
+            return "Lottery Yet to Announce"
+        
+        if scheme.successful_applicants_publish_date and now > scheme.successful_applicants_publish_date:
+            return "Appeal Period"
+        
+        if scheme.application_close_date and now > scheme.application_close_date:
+            return "Applications Under Review"
+        
+        if scheme.application_open_date and now >= scheme.application_open_date:
+            return "Application Open"
+        
+        return "Coming Soon"
+    
+    # Prevent any import operations
+    def before_import_row(self, row, **kwargs):
+        """Block all import operations"""
+        raise NotImplementedError("Import operations are disabled for this resource")
+    
+    def skip_row(self, instance, original):
+        """Skip all rows during import"""
+        return True
+
 @admin.register(Scheme)
-class SchemeAdmin(admin.ModelAdmin):
+class SchemeAdmin(ImportExportModelAdmin):
+    resource_class = SchemeResource
     list_display = ('name', 'company', 'get_status', 'ews_plot_count', 'Lig_plot_count', 'created_at', 
         'next_application_number',)
     list_filter = ('company', 'created_at', 'application_open_date')
@@ -174,7 +338,81 @@ from datetime import datetime
 from .models import Application
 
 
-class ApplicationAdmin(admin.ModelAdmin):
+from import_export import resources, fields
+from import_export.widgets import ForeignKeyWidget, DateWidget, DateTimeWidget
+from .models import Application, Scheme
+
+
+class ApplicationResource(resources.ModelResource):
+    """
+    Resource class for exporting Application data
+    Configured for export-only operations
+    """
+    
+    class Meta:
+        model = Application
+        # Disable imports
+        skip_unchanged = True
+        report_skipped = False
+        import_id_fields = []  # No import ID fields needed for export-only
+        
+        # Fields to export (in order)
+        fields = (
+            'application_number',
+            'scheme_name',
+            'applicant_name',
+            'father_or_husband_name',
+            'dob',
+            'age',
+            'mobile_number',
+            'email',
+            'id_type',
+            'id_number',
+            'pan_number',
+            'permanent_address',
+            'permanent_address_pincode',
+            'postal_address',
+            'postal_address_pincode',
+            'annual_income',
+            'plot_category',
+            'registration_fees',
+            'processing_fees',
+            'total_payable_amount',
+            'payment_mode',
+            'dd_id_or_transaction_id',
+            'dd_date_or_transaction_date',
+            'dd_amount',
+            'payee_account_holder_name',
+            'payee_bank_name',
+            'payment_status',
+            'refund_account_holder_name',
+            'refund_account_number',
+            'refund_bank_name',
+            'refund_bank_branch_address',
+            'refund_bank_ifsc',
+            'application_submission_date',
+            'application_status',
+            'rejection_remark',
+            'lottery_status',
+        )
+        
+        # Export settings
+        export_order = fields
+        use_natural_foreign_keys = True
+    
+    
+    # Prevent any import operations
+    def before_import_row(self, row, **kwargs):
+        """Block all import operations"""
+        raise NotImplementedError("Import operations are disabled for this resource")
+    
+    def skip_row(self, instance, original):
+        """Skip all rows during import"""
+        return True
+
+
+class ApplicationAdmin(ImportExportModelAdmin):
+    resource_class = ApplicationResource
     # List display
     list_display = [
         'application_number',

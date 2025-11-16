@@ -6,6 +6,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 from django.conf import settings
+import base64
 
 class application_pdf_generator():
     def __init__(self, application):
@@ -57,10 +58,19 @@ class application_pdf_generator():
                     justify-content: space-between;
                     align-items: flex-start;
                 }}
+
                 
+
                 .header-left {{
-                    flex: 1;
+                    width: 66%; /* 2/3 */
                 }}
+
+                .header-right {{
+                    width: 33%; /* 1/3 */
+                    text-align: right;   /* <-- FULL RIGHT ALIGN */
+                }}
+
+                
                 
                 .header-logo {{
                     max-width: 80px;
@@ -222,14 +232,29 @@ class application_pdf_generator():
         </head>
         <body>
             <div class="page">
+                <!-- Header 
+                <div class="header">
+                    <div class="header-left">
+                        <div class="scheme-company">{scheme_company}</div>
+                        <div class="scheme-name">{scheme_name}</div>
+                        <div class="scheme-address">{scheme_address}</div>
+                        <div class="submission-date">Date - {application_submission_date}</div>
+                        <div class="submission-date">Application ID - {application_number}</div>
+                    </div>
+                </div>
+                -->
+
                 <!-- Header -->
                 <div class="header">
                     <div class="header-left">
                         <div class="scheme-company">{scheme_company}</div>
                         <div class="scheme-name">{scheme_name}</div>
                         <div class="scheme-address">{scheme_address}</div>
-                        <div class="submission-date">Date - {submission_date}</div>
-                        <div class="submission-date">Application ID - {application_id}</div>
+                    </div>
+
+                    <div class="header-right">
+                        <div class="submission-date">Date - {application_submission_date}</div>
+                        <div class="submission-date">Application ID - {application_number}</div>
                     </div>
                 </div>
                 
@@ -242,11 +267,11 @@ class application_pdf_generator():
                         <div class="info-grid">
                             <div class="info-item">
                                 <div class="info-label">Application ID</div>
-                                <div class="info-value">{application_id}</div>
+                                <div class="info-value">{application_number}</div>
                             </div>
                             <div class="info-item">
                                 <div class="info-label">Submission Date</div>
-                                <div class="info-value">{submission_date}</div>
+                                <div class="info-value">{application_submission_date}</div>
                             </div>
                         </div>
                     </div>
@@ -264,7 +289,7 @@ class application_pdf_generator():
                             </div>
                             <div class="info-item">
                                 <div class="info-label">Father/Husband Name</div>
-                                <div class="info-value">{father_husband_name}</div>
+                                <div class="info-value">{father_or_husband_name}</div>
                             </div>
                             <div class="info-item">
                                 <div class="info-label">Date of Birth</div>
@@ -321,11 +346,52 @@ class application_pdf_generator():
                 </div>
                 -->
                 
+                
+                
+                <!-- 5. Payment Details -->
+                <div class="section">
+                    <div class="section-header">5. Payment Details</div>
+                    <div class="section-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Payment Mode</div>
+                                <div class="info-value">{payment_mode}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Transaction/DD Number</div>
+                                <div class="info-value">{dd_id_or_transaction_id}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Transaction/DD Date</div>
+                                <div class="info-value">{dd_date_or_transaction_date}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Transaction Amount/DD Amount</div>
+                                <div class="info-value">₹ {dd_amount}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Account Holder Name</div>
+                                <div class="info-value">{payee_account_holder_name}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Bank Name</div>
+                                <div class="info-value">{payee_bank_name}</div>
+                            </div>
+                            {payment_image_html}
+                        </div>
+                    </div>
+                </div>
+                
+                
+                <!-- 6. Refund Details 
+                {refund_section_html}
+                -->
+                
                 <!-- 4. Income & Category -->
                 <div class="section">
                     <div class="section-header">4. Income & Category</div>
                     <div class="section-content">
-                        <div class="info-grid">
+                        <div class="info-grid" style="grid-template-columns: 1fr 1fr 1fr;">
                             <div class="info-item">
                                 <div class="info-label">Annual Income Range</div>
                                 <div class="info-value">{annual_income}</div>
@@ -342,7 +408,7 @@ class application_pdf_generator():
                                 <div class="info-label">Processing Fees</div>
                                 <div class="info-value">₹ {processing_fees}</div>
                             </div>
-                            <div class="info-item full-width">
+                            <div class="info-item">
                                 <div class="info-label">Total Payable Amount</div>
                                 <div class="info-value" style="font-weight: bold; font-size: 13pt;">₹ {total_amount}</div>
                             </div>
@@ -350,47 +416,7 @@ class application_pdf_generator():
                     </div>
                 </div>
                 
-                <!-- 5. Payment Details -->
-                <div class="section">
-                    <div class="section-header">5. Payment Details</div>
-                    <div class="section-content">
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <div class="info-label">Payment Mode</div>
-                                <div class="info-value">{payment_mode}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Payment Status</div>
-                                <div class="info-value">{payment_status}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Transaction/DD Number</div>
-                                <div class="info-value">{transaction_number}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Transaction/DD Date</div>
-                                <div class="info-value">{transaction_date}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Transaction Amount</div>
-                                <div class="info-value">₹ {transaction_amount}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Account Holder Name</div>
-                                <div class="info-value">{payee_name}</div>
-                            </div>
-                            <div class="info-item full-width">
-                                <div class="info-label">Bank Name</div>
-                                <div class="info-value">{payee_bank}</div>
-                            </div>
-                            {payment_image_html}
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 6. Refund Details -->
-                {refund_section_html}
-                
+
                 <!-- Footer -->
                 <div class="footer">
                     <div>{scheme_name}</div>
@@ -403,35 +429,56 @@ class application_pdf_generator():
         """
 
     def create_pdf(self):
-        self.application.scheme_company = self.application.scheme__company
-        self.application.scheme_name = self.application.scheme__name
-        self.application.scheme_address = self.application.scheme__address
+        self.application.scheme_company = self.application.scheme.company
+        self.application.scheme_name = self.application.scheme.name
+        self.application.scheme_address = self.application.scheme.address
 
         html = self.generate_acknowledgement_html(data = self.application)
-        file_name = f"Acknowledgement_{self.application.scheme.name}_{self.application.application_number}"
+        print('html is genrated')
+        pdf_bytes = self.html_content_to_pdf_bytes(html)
+        print('pdf bytes is genrated')
+
+        encoded_file = base64.b64encode(pdf_bytes).decode('utf-8')
+
+
+        
 
         # write htmt just for testing, else should not
         if settings.DEBUG :
             import os
-            
+            directory =  os.path.join(settings.MEDIA_ROOT, f"{self.application.scheme.name}")
+            html_path =  os.path.join(directory, f"Acknowledgement_{self.application.scheme.name}_{self.application.application_number}.html")   
             try:
-                file_path = os.path.join(settings.MEDIA_ROOT, filename)
-
                 # Ensure directory exists
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-                # Write file
-                with open(file_path, "w", encoding="utf-8") as f:
+                os.makedirs(os.path.dirname(html_path), exist_ok=True)
+                with open(html_path, "w", encoding="utf-8") as f:
                     f.write(html)
+                
+                print('written html file')
 
             except Exception as e:
                 # Log and continue without crashing
                 print(f"Error saving HTML file: {e}")
+            
+            pdf_path =  os.path.join(directory, f"Acknowledgement_{self.application.scheme.name}_{self.application.application_number}.pdf")   
 
+            try:
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+                with open(pdf_path, "wb") as f:   # <-- binary write mode
+                    f.write(pdf_bytes)
+                
+                print('written pdf file')
 
-        pdf_bytes = self.html_content_to_pdf_bytes(html)
+            except Exception as e:
+                # Log and continue without crashing
+                print(f"Error saving pdf file: {e}")
 
-        return pdf_bytes
+        
+
+        # return pdf_bytes
+        # return html
+        return encoded_file
 
 
 
@@ -453,6 +500,10 @@ class application_pdf_generator():
         # Helper function to safely get values
         def get_val(key, default='N/A'):
             return data.get(key, default) or default
+
+        # to extract date from timestamp string
+        def format_date(dt):
+            return dt.strftime("%d-%m-%Y") if dt else None
         
         # # Generate logo HTML if provided
         # logo_html = ''
@@ -512,12 +563,12 @@ class application_pdf_generator():
             # logo_html=logo_html,
             
             # Application Reference
-            application_id=get_val('application_id'),
-            submission_date=get_val('submission_date'),
+            application_number=get_val('application_number'),
+            application_submission_date=  format_date(get_val('application_submission_date')) ,
             
             # Applicant Details
             applicant_name=get_val('applicant_name'),
-            father_husband_name=get_val('father_husband_name'),
+            father_or_husband_name=get_val('father_or_husband_name'),
             dob=get_val('dob'),
             mobile_number=get_val('mobile_number'),
             id_type=get_val('id_type'),
@@ -525,8 +576,8 @@ class application_pdf_generator():
             pan_number=get_val('pan_number'),
             
             # Address Details
-            address=get_val('address'),
-            address_pincode=get_val('address_pincode'),
+            address=get_val('permanent_address'),
+            address_pincode=get_val('permanent_address_pincode'),
             permanent_address=get_val('permanent_address'),
             permanent_pincode=get_val('permanent_address_pincode'),
             postal_address=get_val('postal_address'),
@@ -537,16 +588,16 @@ class application_pdf_generator():
             plot_category=get_val('plot_category'),
             registration_fees=get_val('registration_fees'),
             processing_fees=get_val('processing_fees'),
-            total_amount=get_val('total_amount'),
+            total_amount=get_val('total_payable_amount'),
             
             # Payment Details
             payment_mode=get_val('payment_mode'),
             payment_status=get_val('payment_status'),
-            transaction_number=get_val('transaction_number'),
-            transaction_date=get_val('transaction_date'),
-            transaction_amount=get_val('transaction_amount'),
-            payee_name=get_val('payee_account_holder'),
-            payee_bank=get_val('payee_bank_name'),
+            dd_id_or_transaction_id=get_val('dd_id_or_transaction_id'),
+            dd_date_or_transaction_date=format_date(get_val('dd_date_or_transaction_date')),
+            dd_amount=get_val('dd_amount'),
+            payee_account_holder_name=get_val('payee_account_holder_name'),
+            payee_bank_name=get_val('payee_bank_name'),
             payment_image_html=payment_image_html,
             
             # Refund Details
