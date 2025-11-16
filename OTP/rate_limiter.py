@@ -35,7 +35,7 @@ class OTPRateLimiter:
         self.resend_window = self.settings.get('RESEND_WINDOW_MINUTES', 60)
         self.resend_cooldown = self.settings.get('RESEND_COOLDOWN_SECONDS', 30)
         
-        self.ip_global_limit = self.settings.get('IP_GLOBAL_LIMIT', 20)
+        self.ip_global_limit = self.settings.get('IP_GLOBAL_LIMIT', 100)
         self.ip_global_window = self.settings.get('IP_GLOBAL_WINDOW_MINUTES', 60)
         
         self.account_lock_duration = self.settings.get('ACCOUNT_LOCK_DURATION_MINUTES', 60)
