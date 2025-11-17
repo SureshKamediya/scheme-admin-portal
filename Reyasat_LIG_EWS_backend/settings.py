@@ -89,11 +89,11 @@ WSGI_APPLICATION = 'Reyasat_LIG_EWS_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'scheme_1_db',  # Use the DB name you created
-        'USER': 'suresh',    # Use the user you created
-        'PASSWORD': 'surya@18', # Use the password you created
-        'HOST': 'localhost',      # If running locally
+        'ENGINE': os.environ.get('ENGINE'),
+        'NAME': os.environ.get('DATABASES_NAME'),  # Use the DB name you created
+        'USER': os.environ.get('DATABASES_USER'),    # Use the user you created
+        'PASSWORD': os.environ.get('DATABASES_PASSWORD'), # Use the password you created
+        'HOST': os.environ.get('DATABASES_HOST'),      # If running locally
         'PORT': '5432',           # Default PostgreSQL port
         'OPTIONS': { 
             'connect_timeout': 10, 
@@ -142,6 +142,8 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 STATIC_URL = 'static/'
 
