@@ -10,7 +10,6 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from .models import Application
 from .serializers import PDFRequestSerializer
-from .application_acknowledgement_pdf_generator import application_pdf_generator
 
 from rest_framework.parsers import MultiPartParser, FormParser
 from .serializers import ApplicationSerializer

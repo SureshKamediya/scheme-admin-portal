@@ -96,7 +96,7 @@ WSGI_APPLICATION = 'Reyasat_LIG_EWS_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.environ.get('ENGINE'),
+        'DATABASES_ENGINE': os.environ.get('DATABASES_ENGINE'),
         'NAME': os.environ.get('DATABASES_NAME'),  # Use the DB name you created
         'USER': os.environ.get('DATABASES_USER'),    # Use the user you created
         'PASSWORD': os.environ.get('DATABASES_PASSWORD'), # Use the password you created
@@ -193,7 +193,7 @@ OTP_SETTINGS = {
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', "ap-south-1")
+AWS_REGION_NAME = os.environ.get('AWS_REGION_NAME', "ap-south-1")
 
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
 AWS_DEFAULT_ACL = None # Don't set default ACL (keeps files private)
