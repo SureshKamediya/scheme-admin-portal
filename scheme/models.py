@@ -166,11 +166,16 @@ class SchemeFiles(models.Model):
 
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
+    
+    def clean(self):
         if self.file_choice != self.file_type_choices.other:
             self.name = self.file_choice
-        super().save(*args, **kwargs)
+        # Check for duplicate before save
+        if SchemeFiles.objects.filter(
+            scheme=self.scheme, 
+            name=self.name
+        ).exclude(pk=self.pk).exists():
+            raise ValidationError ('files for this Scheme and name already exists.')
 
 
 from django.db import models
@@ -424,7 +429,7 @@ class Application(models.Model):
     def clean(self):
         """Validate the application data"""
         super().clean()
-        
+
         # Validate ID number based on ID type
         if self.id_type == 'AADHAR':
             if not self.id_number.isdigit() or len(self.id_number) != 12:
