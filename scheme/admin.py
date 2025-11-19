@@ -11,10 +11,100 @@ from django.utils import timezone
 from datetime import date, timedelta
 from decimal import Decimal
 from .tests import SchemeFactory
+from django.contrib import admin
+from django.utils.html import format_html
+from django.urls import path, reverse
+from django.shortcuts import redirect
+from django.conf import settings
+from s3Manager import S3Manager 
+
+class S3SignedUrlAdminMixin:
+    """
+    A Mixin to add secure S3 signed URL download functionality to any ModelAdmin.
+    """
+    
+    def get_urls(self):
+        """
+        Dynamically adds a generic download URL pattern for this model.
+        Pattern: secure-download/<field_name>/<pk>/
+        """
+        # return "haha"
+        urls = super().get_urls()
+        
+        # We construct a unique URL name based on the model's app label and model name
+        # to prevent collisions between different admins using this mixin.
+        opts = self.model._meta
+        url_name = f'{opts.app_label}_{opts.model_name}_secure_download'
+        
+        custom_urls = [
+            path(
+                'secure-download/<str:field_name>/<int:pk>/',
+                self.admin_site.admin_view(self.secure_redirect_view),
+                name=url_name,
+            ),
+        ]
+        return custom_urls + urls
+
+    def secure_redirect_view(self, request, field_name, pk):
+        """
+        Generic view to handle the signing and redirection.
+        """
+        obj = self.get_object(request, pk)
+        
+        # Security check: ensure object exists
+        if not obj:
+            self.message_user(request, "Object not found", level='error')
+            return redirect(request.META.get('HTTP_REFERER', '/admin/'))
+
+        # Get the file field dynamically
+        file_field = getattr(obj, field_name, None)
+
+        # Security check: ensure field exists and has a file
+        if not file_field:
+            self.message_user(request, f"File not found in field {field_name}", level='error')
+            return redirect(request.META.get('HTTP_REFERER', '/admin/'))
+
+        # Generate Signed URL
+        s3_manager = S3Manager()
+        bucket_name = getattr(settings, 'AWS_STORAGE_BUCKET_NAME', 'my-default-bucket')
+        
+        # We use file_field.name (the S3 key)
+        signed_url = s3_manager.generate_presigned_url(
+            bucket_name=bucket_name,
+            object_name=file_field.name, 
+            expiration=60 # Short expiration for security
+        )
+        
+        if signed_url:
+            return redirect(signed_url)
+        else:
+            self.message_user(request, "Error generating signed URL", level='error')
+            return redirect(request.META.get('HTTP_REFERER', '/admin/'))
+
+    def create_signed_link(self, obj, field_name, link_text="Secure Download"):
+        """
+        Helper method to be called inside your list_display methods.
+        """
+        file_field = getattr(obj, field_name, None)
+        if not file_field:
+            return "-"
+
+        opts = self.model._meta
+        url_name = f'admin:{opts.app_label}_{opts.model_name}_secure_download'
+        
+        # Generate the path to our local view
+        url = reverse(url_name, args=[field_name, obj.pk])
+        
+        return format_html(
+            '<a class="button" href="{}" target="_blank">{}</a>', 
+            url, 
+            link_text
+        )
+
 
 class SchemeFilesResource(resources.ModelResource):
 
-    Scheme = fields.Field(
+    scheme = fields.Field(
         column_name='scheme',
         attribute='Scheme',
         widget=ForeignKeyWidget(Scheme, 'name')
@@ -24,7 +114,7 @@ class SchemeFilesResource(resources.ModelResource):
         model = SchemeFiles
         fields = (
             'id',
-            'Scheme',
+            'scheme',
             'name',
             'file_choice',
             'file',
@@ -34,16 +124,23 @@ class SchemeFilesResource(resources.ModelResource):
 
 
 @admin.register(SchemeFiles)
-class SchemeFilesAdmin(ImportExportModelAdmin):
+class SchemeFilesAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
     resource_class = SchemeFilesResource
-    list_display = ('name', 'Scheme', 'file_choice', 'file')
-    list_filter = ('Scheme', 'file_choice', )
-    search_fields = ('name', 'Scheme__name')
+    list_display = ('name', 'scheme', 'file_link')
+    list_filter = ('scheme', 'file_choice', )
+    search_fields = ('name', 'scheme__name')
     # readonly_fields = ('name',)
+
+    def file_link(self, obj):
+        # 'file_field' is the actual field name in your models.py
+        return self.create_signed_link(obj, 'file', link_text="Download Doc")
+    
+    file_link.short_description = "file"
+    file_link.allow_tags = True
     
     fieldsets = (
         (None, {
-            'fields': ('Scheme', 'file_choice', 'name', 'file')
+            'fields': ('scheme', 'file_choice', 'name', 'file')
         }),
     )
 

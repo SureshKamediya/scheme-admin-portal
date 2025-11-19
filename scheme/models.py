@@ -52,57 +52,6 @@ class Scheme(models.Model):
     lottery_result_date = models.DateTimeField(blank=True, null=True)
     close_date = models.DateTimeField(blank=True, null=True)
 
-    
-    
-
-
-
-
-
-    # class shcheme_status_choices(models.TextChoices):
-    #     coming_soon = "coming_soon", "coming_soon"
-    #     application_open = "application_open", "application_open"
-    #     applications_under_review = "applications_under_review", "applications_under_review"
-    #     appeal_period = 'appeal_period', 'appeal_period'
-    #     lottery_yet_to_anounce = 'lottery_yet_to_anounce', 'lottery_yet_to_anounce'
-    #     lottery_anounced = "lottery_anounced", "lottery_anounced"
-    #     closed = 'closed', 'closed'
-
-    # status = models.CharField(
-    #     max_length=100,
-    #     choices=shcheme_status_choices.choices,
-    #     default=shcheme_status_choices.coming_soon
-    # )
-
-    # successful_applicants = models.FileField(
-    #     upload_to='claim_pdfs/',
-    #     null=True,
-    #     blank=True,
-    #     validators=[FileExtensionValidator(['pdf'])]
-    # )
-
-    # Rejected_applicants = models.FileField(
-    #     upload_to='claim_pdfs/',
-    #     null=True,
-    #     blank=True,
-    #     validators=[FileExtensionValidator(['pdf'])]
-    # )
-
-    # lottery_winners = models.FileField(
-    #     upload_to='claim_pdfs/',
-    #     null=True,
-    #     blank=True,
-    #     validators=[FileExtensionValidator(['pdf'])]
-    # )
-
-    # news_papaer_cut = models.FileField(
-    #     upload_to='claim_pdfs/',
-    #     null=True,
-    #     blank=True,
-    #     validators=[FileExtensionValidator(['pdf'])]
-    # )
-
-    
     def __str__(self):
         return self.name
     
@@ -136,11 +85,56 @@ class Scheme(models.Model):
             self.next_application_number = self.application_number_start
         
         super().save(*args, **kwargs)
+    
+    @property
+    def total_applications(self):
+        return self.applications.count()  # related_name='applications' on Application.scheme
+
+    @property
+    def accepted_applications_count(self):
+        return self.applications.filter(application_status='ACCEPTED').count()
+
+    @property
+    def rejected_applications_count(self):
+        return self.applications.filter(application_status='REJECTED').count()
+
+    @property
+    def pending_applications_count(self):
+        return self.applications.filter(application_status='PENDING').count()
+
+    @property
+    def lottery_selected_count(self):
+        return self.applications.filter(lottery_status='SELECTED').count()
+
+    @property
+    def lottery_waitlisted_count(self):
+        return self.applications.filter(lottery_status='WAITLISTED').count()
+    
+    @property
+    def verified_payments_count(self):
+        return self.applications.filter(payment_status='VERIFIED').count()
 
 
 
 
 class SchemeFiles(models.Model):
+    # models.py or utils.py
+    def file_upload_path(instance, filename):
+        """
+        Generate dynamic upload path for files.
+        Path: scheme_files/<scheme-id>/<name>_scheme<scheme-id>.<extension>
+        
+        Args:
+            instance: scheme_files model instance
+            filename: Original uploaded filename
+            
+        Returns:
+            str: S3 path like 'scheme_files/4/terms_and_condations_scheme4.jpg'
+        """
+
+        # Build the path
+        return f'scheme_files/{instance.scheme.id}/scheme{instance.scheme.id}_{filename}'
+    
     class file_type_choices(models.TextChoices):
         terms__condations = 'terms and condations', 'terms and condations'
         scheme_details = 'scheme details', 'scheme details'
@@ -149,10 +143,11 @@ class SchemeFiles(models.Model):
         lottery_winners = "lottery_winners", "lottery_winners"
         news_papaer_cut = "news_papaer_cut", "news_papaer_cut"
         other = 'other', 'other'
+    
 
     
-    Scheme = models.ForeignKey(Scheme, related_name='files', on_delete=models.CASCADE)
-    name = models.CharField(max_length=255, unique=True, blank=True, null=True, db_index=True)
+    scheme = models.ForeignKey(Scheme, related_name='files', on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     
     file_choice = models.CharField(
         max_length=100,
@@ -160,43 +155,22 @@ class SchemeFiles(models.Model):
         default=file_type_choices.other
     )
 
-    
-
     file = models.FileField(
-        upload_to='myfiles/',
+        upload_to=file_upload_path,
+        storage=S3Boto3Storage(),
         validators=[FileExtensionValidator(['pdf', 'jpg', 'png'])]
     )
+
+    class Meta:
+        unique_together = ['scheme', 'name']
 
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
-        # If file_choice is NOT "other", force name = file_choice
         if self.file_choice != self.file_type_choices.other:
             self.name = self.file_choice
-        
-        # Otherwise name stays what the client sent
         super().save(*args, **kwargs)
-
-        # rename the files to associate them with scheme id
-        self.rename_uploaded_files()
-    
-    def rename_uploaded_files(self):
-        updated = False
-
-        if self.file:
-            ext = os.path.splitext(self.file.name)[1]  # .jpg/.png
-            new_name = f"{self.Scheme.name}_{self.name}{ext}"
-
-            if os.path.basename(self.file.name) != new_name:
-                data = self.file.read()
-                self.file.delete(save=False)
-                self.file.save(new_name, ContentFile(data), save=False)
-                updated = True
-        if updated:
-            # calling super to make sure we are not getting into infinite loop. 
-            super().save(update_fields=["file"]) 
-
 
 
 from django.db import models
@@ -354,17 +328,14 @@ class Application(models.Model):
         # Get file extension
         ext = os.path.splitext(filename)[1].lower()  # e.g., '.jpg', '.pdf'
         
-        # Get scheme name and make it URL-safe
-        scheme_name = slugify(instance.scheme.name)  # Converts spaces, special chars
+        # # Get scheme name and make it URL-safe
+        # scheme_name = slugify(instance.scheme.name)  # Converts spaces, special chars
         
-        # Get application number
-        application_number = instance.application_number
-        
-        path = f'applications/{scheme_name}/payment_proofs/{instance.application_number}{ext}'
+        path = f'applications/{instance.scheme}/payment_proofs/payment_proofs_{instance.scheme}_{instance.application_number}{ext}'
         print(path)
         # Build the path
-        return f'applications/{scheme_name}/payment_proofs/{instance.application_number}{ext}'
-
+        return f'applications/{instance.scheme}/payment_proofs/payment_proofs_{instance.scheme}_{instance.application_number}{ext}'
+    
 
     def identity_document_upload_path(instance, filename):
         """Upload path for identity documents."""
@@ -454,16 +425,6 @@ class Application(models.Model):
         """Validate the application data"""
         super().clean()
         
-        # # Validate payment mode specific fields
-        # if self.payment_mode == 'DD':
-        #     if self.dd_id and not self.dd_date:
-        #         raise ValidationError({'dd_date': 'DD date is required when DD ID is provided'})
-        # elif self.payment_mode == 'UPI':
-        #     if not self.transaction_id:
-        #         raise ValidationError({'transaction_id': 'Transaction ID is required for UPI payments'})
-        #     if not self.transaction_date:
-        #         raise ValidationError({'transaction_date': 'Transaction date is required for UPI payments'})
-
         # Validate ID number based on ID type
         if self.id_type == 'AADHAR':
             if not self.id_number.isdigit() or len(self.id_number) != 12:
@@ -512,25 +473,6 @@ class Application(models.Model):
         else:
             super().save(*args, **kwargs)
 
-        self.refresh_from_db()
-        # rename the files to associate them with scheme id
-        self.rename_uploaded_files()
-    
-    def rename_uploaded_files(self):
-        updated = False
-
-        if self.payment_proof:
-            ext = os.path.splitext(self.payment_proof.name)[1]  # .jpg/.png
-            new_name = f"{self.application_number}_payment_proof{ext}"
-
-            if os.path.basename(self.payment_proof.name) != new_name:
-                data = self.payment_proof.read()
-                self.payment_proof.delete(save=False)
-                self.payment_proof.save(new_name, ContentFile(data), save=False)
-                updated = True
-        if updated:
-            # calling super to make sure we are not getting into infinite loop. 
-            super().save(update_fields=["payment_proof"]) 
 
 
 
