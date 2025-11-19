@@ -87,33 +87,35 @@ WSGI_APPLICATION = 'Reyasat_LIG_EWS_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
 
-DATABASES = {
-    'default': {
-        'DATABASES_ENGINE': os.environ.get('DATABASES_ENGINE'),
-        'NAME': os.environ.get('DATABASES_NAME'),  # Use the DB name you created
-        'USER': os.environ.get('DATABASES_USER'),    # Use the user you created
-        'PASSWORD': os.environ.get('DATABASES_PASSWORD'), # Use the password you created
-        'HOST': os.environ.get('DATABASES_HOST'),      # If running locally
-        'PORT': '5432',           # Default PostgreSQL port
-        'OPTIONS': { 
-            'connect_timeout': 10, 
-            'options': '-c statement_timeout=30000 -c lock_timeout=10000' 
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': os.environ.get('DATABASES_ENGINE'),
+            'NAME': os.environ.get('DATABASES_NAME'),  # Use the DB name you created
+            'USER': os.environ.get('DATABASES_USER'),    # Use the user you created
+            'PASSWORD': os.environ.get('DATABASES_PASSWORD'), # Use the password you created
+            'HOST': os.environ.get('DATABASES_HOST'),      # If running locally
+            'PORT': '5432',           # Default PostgreSQL port
+            'OPTIONS': { 
+                'connect_timeout': 10, 
+                'options': '-c statement_timeout=30000 -c lock_timeout=10000' 
+            },
+            'CONN_MAX_AGE': 600,
+            'TEST': {
+                'NAME': 'test_scheme_1_db',
+            },
         },
-        'CONN_MAX_AGE': 600,
-        'TEST': {
-            'NAME': 'test_scheme_1_db',
-        },
-    },
-    
-    
-}
+        
+        
+    }
 
 
 # Password validation
