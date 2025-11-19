@@ -19,8 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', True)  
-
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 if DEBUG:
     from dotenv import load_dotenv
     load_dotenv(BASE_DIR / ".env")
@@ -187,6 +186,24 @@ OTP_SETTINGS = {
     'ENABLE_PROGRESSIVE_DELAYS': True,
 }
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'django-error.log'),
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
 
 
 
