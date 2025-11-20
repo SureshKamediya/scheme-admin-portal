@@ -175,7 +175,7 @@ class SchemeFiles(models.Model):
             scheme=self.scheme, 
             name=self.name
         ).exclude(pk=self.pk).exists():
-            raise ValidationError ('files for this Scheme and name already exists.')
+            raise ValidationError ('files for this Scheme and file choice already exists.')
 
 
 from django.db import models
