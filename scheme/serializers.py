@@ -73,7 +73,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'id_type',
             'id_type_display',
             'id_number',
-            'pan_number',
+            'aadhar_number',
             
             # Address Details
             'permanent_address',
@@ -98,19 +98,19 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'payment_mode_display',
             'dd_id_or_transaction_id',
             'dd_date_or_transaction_date',
-            'dd_amount',
-            'payee_account_holder_name',
-            'payee_bank_name',
+            'dd_amount_or_transaction_amount',
+            'payer_account_holder_name',
+            'payer_bank_name',
             'payment_proof',
             'payment_status',
             'payment_status_display',
             
-            # Refund Details
-            'refund_account_holder_name',
-            'refund_account_number',
-            'refund_bank_name',
-            'refund_bank_branch_address',
-            'refund_bank_ifsc',
+            # applicant Details
+            'applicant_account_holder_name',
+            'applicant_account_number',
+            'applicant_bank_name',
+            'applicant_bank_branch_address',
+            'applicant_bank_ifsc',
             
             # Application Tracking
             'application_submission_date',
@@ -155,7 +155,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Enter a valid 10-digit mobile number')
         return value
     
-    def validate_pan_number(self, value):
+    def validate_aadhar_number(self, value):
         """Validate PAN number format"""
         if not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', value):
             raise serializers.ValidationError('Enter a valid PAN number (e.g., ABCDE1234F)')
@@ -173,7 +173,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Enter a valid 6-digit pincode')
         return value
     
-    def validate_refund_bank_ifsc(self, value):
+    def validate_applicant_bank_ifsc(self, value):
         """Validate IFSC code format"""
         if not re.match(r'^[A-Z]{4}0[A-Z0-9]{6}$', value):
             raise serializers.ValidationError('Enter a valid IFSC code')
@@ -212,7 +212,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
         
         return value
     
-    def validate_dd_amount(self, value):
+    def validate_dd_amount_or_transaction_amount(self, value):
         """Validate DD/transaction amount is positive"""
         if value <= 0:
             raise serializers.ValidationError('Amount must be greater than zero')
@@ -231,7 +231,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
         
         # Validate payment amount matches expected amount
         annual_income = attrs.get('annual_income')
-        dd_amount = attrs.get('dd_amount')
+        dd_amount_or_transaction_amount = attrs.get('dd_amount_or_transaction_amount')
         
         if annual_income:
             processing_fees = Decimal('500.00')
@@ -240,9 +240,9 @@ class ApplicationSerializer(serializers.ModelSerializer):
             elif annual_income == '3L_6L':
                 expected_amount = Decimal('20000.00') + processing_fees
             
-            if dd_amount and abs(dd_amount - expected_amount) > Decimal('0.01'):
+            if dd_amount_or_transaction_amount and abs(dd_amount_or_transaction_amount - expected_amount) > Decimal('0.01'):
                 raise serializers.ValidationError({
-                    'dd_amount': f'Payment amount should be ₹{expected_amount}'
+                    'dd_amount_or_transaction_amount': f'Payment amount should be ₹{expected_amount}'
                 })
         
         return attrs

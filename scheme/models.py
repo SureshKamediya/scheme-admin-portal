@@ -40,7 +40,7 @@ class Scheme(models.Model):
     ews_plot_count = models.IntegerField()
     Lig_plot_count = models.IntegerField()
 
-    reserved_rate = models.IntegerField()
+    reserved_price = models.IntegerField(  verbose_name='Reserved Price per Sq Meter' )
     
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -175,7 +175,15 @@ class SchemeFiles(models.Model):
             scheme=self.scheme, 
             name=self.name
         ).exclude(pk=self.pk).exists():
-            raise ValidationError ('files for this Scheme and name already exists.')
+            raise ValidationError ('files for this Scheme and file choice already exists.')
+
+
+from django.db import models
+from django.core.validators import RegexValidator, MinValueValidator
+from django.core.exceptions import ValidationError
+from decimal import Decimal
+from django.db import models, transaction
+from django.db.models import F
 
 
 from django.db import models
@@ -189,7 +197,7 @@ class Application(models.Model):
     
     # ID Type choices
     ID_TYPE_CHOICES = [
-        ('AADHAR', 'Aadhar Card'),
+        ('PAN_CARD', 'Pan Card'),
         ('RATION_CARD', 'Ration Card'),
         ('JAN_AADHAR', 'Jan Aadhar Card'),
         ('VOTER_ID', 'Voter ID Card'),
@@ -206,6 +214,18 @@ class Application(models.Model):
     PLOT_CATEGORY_CHOICES = [
         ('EWS', 'Economically Weaker Section'),
         ('LIG', 'Low Income Group'),
+    ]
+    
+    # Sub-category choices 
+    SUB_CATEGORY_CHOICES = [
+        ('EWS_GENERAL', 'EWS - General'),
+        ('EWS_SC', 'EWS - SC'),
+        ('EWS_ST', 'EWS - ST'),
+        ('EWS_OBC', 'EWS - OBC'),
+        ('LIG_GENERAL', 'LIG - General'),
+        ('LIG_SC', 'LIG - SC'),
+        ('LIG_ST', 'LIG - ST'),
+        ('LIG_OBC', 'LIG - OBC'),
     ]
     
     # Payment mode choices
@@ -235,7 +255,7 @@ class Application(models.Model):
         ('NOT_SELECTED', 'Not Selected'),
         ('WAITLISTED', 'Waitlisted'),
     ]
-    
+
     # Basic Details
     scheme = models.ForeignKey('Scheme', on_delete=models.PROTECT, related_name='applications')
     mobile_number = models.CharField(
@@ -253,13 +273,14 @@ class Application(models.Model):
     #  Identity Details
     id_type = models.CharField(max_length=20, choices=ID_TYPE_CHOICES)
     id_number = models.CharField(max_length=20)
-    pan_number = models.CharField(
-        max_length=10,
+    aadhar_number = models.CharField(
+        max_length=12,
         validators=[RegexValidator(
-            regex=r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$' , message='Enter a valid PAN number (e.g., ABCDE1234F)')
+            regex=r'^[0-9]{12}$' , message='Enter a valid Aadhar number (12 digits)')
         ]
     )
-      
+
+    
     # Address Details
     permanent_address = models.TextField()
     permanent_address_pincode = models.CharField(
@@ -277,7 +298,9 @@ class Application(models.Model):
     annual_income = models.CharField(max_length=20, choices=INCOME_CHOICES)
     
     # Auto-filled fields based on income
-    plot_category = models.CharField(max_length=10, choices=PLOT_CATEGORY_CHOICES, editable=False)
+    plot_category = models.CharField(max_length=10, choices=PLOT_CATEGORY_CHOICES)
+
+    sub_category = models.CharField(max_length=100, choices=SUB_CATEGORY_CHOICES)
     registration_fees = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
@@ -304,15 +327,17 @@ class Application(models.Model):
     # DD Details (for Demand Draft)
     dd_id_or_transaction_id = models.CharField(max_length=100, verbose_name='DD ID/Transaction ID')
     dd_date_or_transaction_date = models.DateField(verbose_name='DD Date/Transaction Date')
-    dd_amount = models.DecimalField(
+    dd_amount_or_transaction_amount = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
         verbose_name='DD Amount/Transaction Amount'
     )
 
+
+
     # Common payment fields
-    payee_account_holder_name = models.CharField(max_length=200)
-    payee_bank_name = models.CharField(max_length=200)
+    payer_account_holder_name = models.CharField(max_length=200)
+    payer_bank_name = models.CharField(max_length=200)
     
     # models.py or utils.py
     def payment_proof_upload_path(instance, filename):
@@ -372,6 +397,7 @@ class Application(models.Model):
         verbose_name='Transaction Screenshot / DD Photo'
     )
     
+    
     # Payment status (filled by employees)
     payment_status = models.CharField(
         max_length=20, 
@@ -379,12 +405,12 @@ class Application(models.Model):
         default='PENDING'
     )
     
-    # Refund Details
-    refund_account_holder_name = models.CharField(max_length=200)
-    refund_account_number = models.CharField(max_length=20)
-    refund_bank_name = models.CharField(max_length=200)
-    refund_bank_branch_address = models.TextField()
-    refund_bank_ifsc = models.CharField(
+    # applicant account Details for refund purposes
+    applicant_account_holder_name = models.CharField(max_length=200)
+    applicant_account_number = models.CharField(max_length=20)
+    applicant_bank_name = models.CharField(max_length=200)
+    applicant_bank_branch_address = models.TextField()
+    applicant_bank_ifsc = models.CharField(
         max_length=11,
         validators=[RegexValidator(regex=r'^[A-Z]{4}0[A-Z0-9]{6}$', message='Enter a valid IFSC code')]
     )
@@ -431,9 +457,11 @@ class Application(models.Model):
         super().clean()
 
         # Validate ID number based on ID type
-        if self.id_type == 'AADHAR':
-            if not self.id_number.isdigit() or len(self.id_number) != 12:
-                raise ValidationError({'id_number': 'Aadhar number must be 12 digits'})
+        
+        import re
+        if self.id_type == 'PAN_CARD':
+            if not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$'):
+                raise ValidationError({'id_number':'Enter a valid PAN number (e.g., ABCDE1234F)'})
         elif self.id_type == 'RATION_CARD':
             if len(self.id_number) < 8 or len(self.id_number) > 15:
                 raise ValidationError({'id_number': 'Ration card number must be between 8-15 characters'})
@@ -441,7 +469,7 @@ class Application(models.Model):
             if not self.id_number.isdigit() or len(self.id_number) != 10:
                 raise ValidationError({'id_number': 'Jan Aadhar number must be 10 digits'})
         elif self.id_type == 'VOTER_ID':
-            import re
+            
             if not re.match(r'^[A-Z]{3}[0-9]{7}$'):
                 raise ValidationError({'id_number': 'Enter a valid VOTER ID number'})
     
@@ -501,4 +529,4 @@ class Application(models.Model):
     
 
 
-
+    

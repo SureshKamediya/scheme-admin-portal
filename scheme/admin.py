@@ -92,12 +92,21 @@ class S3SignedUrlAdminMixin:
         opts = self.model._meta
         url_name = f'admin:{opts.app_label}_{opts.model_name}_secure_download'
         
+        file_path = obj.file.name if obj.file else 'No File'
+        file_name = file_path.split('/')[-1] if file_path != 'No File' else 'No File'
+        link_text = file_name
+
         # Generate the path to our local view
         url = reverse(url_name, args=[field_name, obj.pk])
         
+        # return format_html(
+        #     '<a class="button" href="{}" target="_blank">{}</a>', 
+        #     url, 
+        #     link_text
+        # )
         return format_html(
-            '<a class="button" href="{}" target="_blank">{}</a>', 
-            url, 
+            '<a href="{}" target="_blank">{}</a>',
+            url,
             link_text
         )
 
@@ -124,19 +133,11 @@ class SchemeFilesResource(resources.ModelResource):
 
 
 @admin.register(SchemeFiles)
-class SchemeFilesAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
+class SchemeFilesAdmin(ImportExportModelAdmin):
     resource_class = SchemeFilesResource
-    list_display = ('name', 'scheme', 'file_link')
+    list_display = ('name', 'scheme', 'file')
     list_filter = ('scheme', 'file_choice', )
     search_fields = ('name', 'scheme__name')
-    # readonly_fields = ('name',)
-
-    def file_link(self, obj):
-        # 'file_field' is the actual field name in your models.py
-        return self.create_signed_link(obj, 'file', link_text="Download Doc")
-    
-    file_link.short_description = "file"
-    file_link.allow_tags = True
     
     fieldsets = (
         (None, {
@@ -213,9 +214,9 @@ class SchemeResource(resources.ModelResource):
     # )
     
     # # Reserved Rate
-    # reserved_rate = fields.Field(
+    # reserved_price = fields.Field(
     #     column_name='Reserved Rate (%)',
-    #     attribute='reserved_rate'
+    #     attribute='reserved_price'
     # )
     
     # # Important Dates
@@ -286,7 +287,7 @@ class SchemeResource(resources.ModelResource):
             'ews_plot_count',
             'lig_plot_count',
             'total_plot_count',
-            'reserved_rate',
+            'reserved_price',
             'application_number_start',
             'next_application_number',
             'total_applications',
@@ -367,7 +368,7 @@ class SchemeAdmin(ImportExportModelAdmin):
             'fields': ('company', 'name', 'address', 'phone')
         }),
         ('Plot Configuration', {
-            'fields': ('ews_plot_count', 'Lig_plot_count', 'reserved_rate'),
+            'fields': ('ews_plot_count', 'Lig_plot_count', 'reserved_price'),
             'description': 'Configure the number of plots and reserved rate'
         }),
         ('Application Settings', {
@@ -465,7 +466,7 @@ class ApplicationResource(resources.ModelResource):
             'email',
             'id_type',
             'id_number',
-            'pan_number',
+            'aadhar_number',
             'permanent_address',
             'permanent_address_pincode',
             'postal_address',
@@ -478,15 +479,15 @@ class ApplicationResource(resources.ModelResource):
             'payment_mode',
             'dd_id_or_transaction_id',
             'dd_date_or_transaction_date',
-            'dd_amount',
-            'payee_account_holder_name',
-            'payee_bank_name',
+            'dd_amount_or_transaction_amount',
+            'payer_account_holder_name',
+            'payer_bank_name',
             'payment_status',
-            'refund_account_holder_name',
-            'refund_account_number',
-            'refund_bank_name',
-            'refund_bank_branch_address',
-            'refund_bank_ifsc',
+            'applicant_account_holder_name',
+            'applicant_account_number',
+            'applicant_bank_name',
+            'applicant_bank_branch_address',
+            'applicant_bank_ifsc',
             'application_submission_date',
             'application_status',
             'rejection_remark',
@@ -529,15 +530,16 @@ class ApplicationAdmin(ImportExportModelAdmin):
     
     # List filters
     list_filter = [
+        'scheme',
+        'plot_category',
+        'annual_income',
         'application_status',
         'payment_status',
         'lottery_status',
-        'plot_category',
         'payment_mode',
         'id_type',
-        'annual_income',
         'application_submission_date',
-        'scheme',
+        
     ]
     
     # Search fields
@@ -546,7 +548,7 @@ class ApplicationAdmin(ImportExportModelAdmin):
         'mobile_number',
         'email',
         'id_number',
-        'pan_number',
+        'aadhar_number',
         'father_or_husband_name',
         'application_number',
     ]
@@ -567,7 +569,7 @@ class ApplicationAdmin(ImportExportModelAdmin):
             'fields': ('applicant_name', 'father_or_husband_name', 'dob', 'mobile_number', 'email')
         }),
         ('Identity Details', {
-            'fields': ('id_type', 'id_number', 'pan_number')
+            'fields': ('id_type', 'id_number', 'aadhar_number')
         }),
         ('Address Details', {
             'fields': (
@@ -589,9 +591,9 @@ class ApplicationAdmin(ImportExportModelAdmin):
                 'payment_mode',
                 'dd_id_or_transaction_id',
                 'dd_date_or_transaction_date',
-                'dd_amount',
-                'payee_account_holder_name',
-                'payee_bank_name',
+                'dd_amount_or_transaction_amount',
+                'payer_account_holder_name',
+                'payer_bank_name',
                 'payment_proof',
             )
         }),
@@ -599,13 +601,13 @@ class ApplicationAdmin(ImportExportModelAdmin):
             'fields': ('payment_status',),
             'classes': ('wide',)
         }),
-        ('Refund Details', {
+        ('applicant Details', {
             'fields': (
-                'refund_account_holder_name',
-                'refund_account_number',
-                'refund_bank_name',
-                'refund_bank_ifsc',
-                'refund_bank_branch_address',
+                'applicant_account_holder_name',
+                'applicant_account_number',
+                'applicant_bank_name',
+                'applicant_bank_ifsc',
+                'applicant_bank_branch_address',
                 
             ),
             'classes': ('collapse',)
@@ -676,7 +678,7 @@ class ApplicationAdmin(ImportExportModelAdmin):
             color,
             obj.get_application_status_display()
         )
-    application_status_badge.short_description = 'Application Status'
+    # application_status_badge.short_description = 'Application Status'
     
     def lottery_status_badge(self, obj):
         colors = {
@@ -691,7 +693,7 @@ class ApplicationAdmin(ImportExportModelAdmin):
             color,
             obj.get_lottery_status_display()
         )
-    lottery_status_badge.short_description = 'Lottery Status'
+    # lottery_status_badge.short_description = 'Lottery Status'
     
     # Export as CSV
     def export_as_csv(self, request, queryset):
@@ -708,7 +710,7 @@ class ApplicationAdmin(ImportExportModelAdmin):
             writer.writerow([getattr(obj, field) for field in field_names])
         
         return response
-    export_as_csv.short_description = "Export selected as CSV"
+    # export_as_csv.short_description = "Export selected as CSV"
     
     # Export as Excel (requires openpyxl: pip install openpyxl)
     def export_as_excel(self, request, queryset):
@@ -768,7 +770,7 @@ class ApplicationAdmin(ImportExportModelAdmin):
         
         wb.save(response)
         return response
-    export_as_excel.short_description = "Export selected as Excel"
+    # export_as_excel.short_description = "Export selected as Excel"
     
     # Bulk action: Mark payment as verified
     def mark_payment_verified(self, request, queryset):
