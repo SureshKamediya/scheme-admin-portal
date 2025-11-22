@@ -34,7 +34,7 @@ class SchemeFactory:
     
     @staticmethod
     def create(name="Test Scheme", company = "riyasat infra", ews_plot_count = 3, Lig_plot_count = 1, 
-               reserved_rate = Decimal(5000), application_number_start = None):
+               reserved_price = Decimal(5000), application_number_start = None):
         if application_number_start is None:
             # Increment counter each time to ensure uniqueness
             application_number_start = SchemeFactory.counter
@@ -44,7 +44,7 @@ class SchemeFactory:
             company=company,
             ews_plot_count = ews_plot_count,
             Lig_plot_count = Lig_plot_count,
-            reserved_rate = reserved_rate,
+            reserved_price = reserved_price,
             application_number_start = application_number_start
             # Add other required fields based on your Scheme model
         )
@@ -126,7 +126,7 @@ class ApplicationFactory:
         applicant_name="Test Applicant",
         mobile_number=None,
         dob=date.today() - timedelta(days=random.randint(20, 50)*365), # Random age 20-50
-        pan_number=None,
+        aadhar_number=None,
         registration_fees=None,
         payment_proof = None
     ):
@@ -135,8 +135,8 @@ class ApplicationFactory:
         if mobile_number is None:
             mobile_number = ApplicationFactory._get_unique_mobile_number()
 
-        if pan_number is None:
-            pan_number = generate_pan()
+        if aadhar_number is None:
+            aadhar_number = generate_pan()
 
         # 2. Derive fields based on selected annual_income
         if annual_income == 'UP_TO_3L':
@@ -182,7 +182,7 @@ class ApplicationFactory:
             # Identity Details (randomized)
             id_type=id_type,
             id_number=id_number,
-            pan_number=pan_number,
+            aadhar_number=aadhar_number,
             
             # Address Details
             permanent_address="123 Permanent Street, Jaipur",
@@ -204,18 +204,18 @@ class ApplicationFactory:
             payment_mode=payment_mode,
             dd_id_or_transaction_id=f"{payment_mode}{random.randint(10000, 99999)}",
             dd_date_or_transaction_date=date.today(),
-            dd_amount=total_payable_amount,
-            payee_account_holder_name="Payee Name",
-            payee_bank_name="Test Bank of India",
+            dd_amount_or_transaction_amount=total_payable_amount,
+            payer_account_holder_name="Payee Name",
+            payer_bank_name="Test Bank of India",
             payment_proof=payment_proof_file,
             payment_status=payment_status,
             
-            # Refund Details
-            refund_account_holder_name="Refund Holder Name",
-            refund_account_number="9876543210987654",
-            refund_bank_name="Refund Test Bank",
-            refund_bank_branch_address="Branch Address",
-            refund_bank_ifsc=generate_ifsc(),
+            # applicant Details
+            applicant_account_holder_name="applicant Holder Name",
+            applicant_account_number="9876543210987654",
+            applicant_bank_name="applicant Test Bank",
+            applicant_bank_branch_address="Branch Address",
+            applicant_bank_ifsc=generate_ifsc(),
             
             # Application Tracking & Lottery Status (randomized status)
             application_status=application_status,
@@ -244,7 +244,7 @@ class ApplicationModelTestCase(TestCase):
             'dob': date(1990, 1, 1),
             'id_type': 'AADHAR',
             'id_number': '123456789012',
-            'pan_number': 'ABCDE1234F',
+            'aadhar_number': 'ABCDE1234F',
             'permanent_address': '123 Main St, City',
             'permanent_address_pincode': '123456',
             'postal_address': '123 Main St, City',
@@ -252,9 +252,9 @@ class ApplicationModelTestCase(TestCase):
             'email': 'john@example.com',
             'annual_income': 'UP_TO_3L',
             'payment_mode': 'UPI',
-            'refund_bank_branch_address': 'Branch Address',
+            'applicant_bank_branch_address': 'Branch Address',
             'dd_date_or_transaction_date' : timezone.now(),
-            'dd_amount' : Decimal(21000.00)
+            'dd_amount_or_transaction_amount' : Decimal(21000.00)
         }
     
     
@@ -352,10 +352,10 @@ class ApplicationModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             application.full_clean()
     
-    def test_pan_number_validation(self):
+    def test_aadhar_number_validation(self):
         """Test PAN number format validation"""
         data = self.valid_application_data.copy()
-        data['pan_number'] = 'INVALID123'
+        data['aadhar_number'] = 'INVALID123'
         
         application = Application(**data)
         with self.assertRaises(ValidationError):
@@ -434,7 +434,7 @@ class ApplicationModelTestCase(TestCase):
         """
         # Create a base scheme with a known starting application number
         cls.initial_app_number = random.randint(10000, 99999)
-        # Assuming SchemeFactory takes a reserved_rate (Decimal) and application_number_start
+        # Assuming SchemeFactory takes a reserved_price (Decimal) and application_number_start
         cls.scheme = SchemeFactory.create(
             name="Test Scheme for Increment",
             application_number_start=cls.initial_app_number,
@@ -514,7 +514,7 @@ class ApplicationModelTestCase(TestCase):
 #             dob=date(1990, 1, 1),
 #             id_type='AADHAR',
 #             id_number='123456789012',
-#             pan_number='ABCDE1234F',
+#             aadhar_number='ABCDE1234F',
 #             permanent_address='123 Main St',
 #             permanent_address_pincode='123456',
 #             postal_address='123 Main St',
@@ -522,9 +522,9 @@ class ApplicationModelTestCase(TestCase):
 #             email='john@example.com',
 #             annual_income='UP_TO_3L',
 #             payment_mode='UPI',
-#             refund_bank_branch_address='Branch Address',
+#             applicant_bank_branch_address='Branch Address',
 #             dd_date_or_transaction_date = timezone.now(),
-#             dd_amount = Decimal(21000.00)
+#             dd_amount_or_transaction_amount = Decimal(21000.00)
 #         )
         
 #         self.application2 = Application.objects.create(
@@ -535,7 +535,7 @@ class ApplicationModelTestCase(TestCase):
 #             dob=date(1985, 5, 15),
 #             id_type='VOTER_ID',
 #             id_number='ABC1234567',
-#             pan_number='XYZAB5678C',
+#             aadhar_number='XYZAB5678C',
 #             permanent_address='456 Oak Ave',
 #             permanent_address_pincode='654321',
 #             postal_address='456 Oak Ave',
@@ -543,9 +543,9 @@ class ApplicationModelTestCase(TestCase):
 #             email='jane@example.com',
 #             annual_income='3L_6L',
 #             payment_mode='DD',
-#             refund_bank_branch_address='Branch Address',
+#             applicant_bank_branch_address='Branch Address',
 #             dd_date_or_transaction_date = timezone.now(),
-#             dd_amount = Decimal(21000.00)
+#             dd_amount_or_transaction_amount = Decimal(21000.00)
 #         )
     
 #     def test_list_display_fields(self):
@@ -732,7 +732,7 @@ class ApplicationIntegrationTestCase(TestCase):
             dob=date(1990, 1, 1),
             id_type='AADHAR',
             id_number='123456789012',
-            pan_number='ABCDE1234F',
+            aadhar_number='ABCDE1234F',
             permanent_address='Test Address',
             permanent_address_pincode='123456',
             postal_address='Test Address',
@@ -740,9 +740,9 @@ class ApplicationIntegrationTestCase(TestCase):
             email='test@example.com',
             annual_income='UP_TO_3L',
             payment_mode='UPI',
-            refund_bank_branch_address='Branch',
+            applicant_bank_branch_address='Branch',
             dd_date_or_transaction_date = timezone.now(),
-            dd_amount = Decimal(10500)
+            dd_amount_or_transaction_amount = Decimal(10500)
         )
         
         # Verify auto-calculations
@@ -775,7 +775,7 @@ class ApplicationIntegrationTestCase(TestCase):
             dob=date(1990, 1, 1),
             id_type='AADHAR',
             id_number='123456789012',
-            pan_number='ABCDE1234F',
+            aadhar_number='ABCDE1234F',
             permanent_address='Test Address',
             permanent_address_pincode='123456',
             postal_address='Test Address',
@@ -783,9 +783,9 @@ class ApplicationIntegrationTestCase(TestCase):
             email='test@example.com',
             annual_income='UP_TO_3L',
             payment_mode='UPI',
-            refund_bank_branch_address='Branch',
+            applicant_bank_branch_address='Branch',
             dd_date_or_transaction_date = timezone.now(),
-            dd_amount = Decimal(10500),
+            dd_amount_or_transaction_amount = Decimal(10500),
         )
         
         # Reject with remark
@@ -817,7 +817,7 @@ class ApplicationNumberTestCase(TransactionTestCase):
             'dob': date(1990, 1, 1),
             'id_type': 'AADHAR',
             'id_number': '123456789012',
-            'pan_number': 'ABCDE1234F',
+            'aadhar_number': 'ABCDE1234F',
             'permanent_address': '123 Main St, City',
             'permanent_address_pincode': '123456',
             'postal_address': '123 Main St, City',
@@ -825,9 +825,9 @@ class ApplicationNumberTestCase(TransactionTestCase):
             'email': 'john@example.com',
             'annual_income': 'UP_TO_3L',
             'payment_mode': 'UPI',
-            'refund_bank_branch_address': 'Branch Address',
+            'applicant_bank_branch_address': 'Branch Address',
             'dd_date_or_transaction_date' : timezone.now(),
-            'dd_amount' : Decimal(21000.00),
+            'dd_amount_or_transaction_amount' : Decimal(21000.00),
             'registration_fees' : Decimal(20000.00)
         }
         self.scheme_id = self.scheme.id
