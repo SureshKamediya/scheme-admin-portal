@@ -264,7 +264,7 @@ class Application(models.Model):
     )
 
     # to be set at runtime by save method. 
-    application_number = models.IntegerField(null=False, blank=True, editable=False, unique=True, db_index=True, help_text="Auto-generated sequential number unique to every application")
+    application_number = models.IntegerField(null=False, blank=True, editable=False, db_index=True, help_text="Auto-generated sequential number unique to every application")
 
     applicant_name = models.CharField(max_length=200)
     father_or_husband_name = models.CharField(max_length=200)
@@ -444,7 +444,10 @@ class Application(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['scheme', 'mobile_number']
+        unique_together = (
+            ('scheme', 'mobile_number'),
+            ('scheme', 'application_number'),
+        )
         ordering = ['-application_submission_date']
         verbose_name = 'Application'
         verbose_name_plural = 'Applications'
@@ -460,7 +463,7 @@ class Application(models.Model):
         
         import re
         if self.id_type == 'PAN_CARD':
-            if not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$'):
+            if not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', self.id_number):
                 raise ValidationError({'id_number':'Enter a valid PAN number (e.g., ABCDE1234F)'})
         elif self.id_type == 'RATION_CARD':
             if len(self.id_number) < 8 or len(self.id_number) > 15:
@@ -469,8 +472,7 @@ class Application(models.Model):
             if not self.id_number.isdigit() or len(self.id_number) != 10:
                 raise ValidationError({'id_number': 'Jan Aadhar number must be 10 digits'})
         elif self.id_type == 'VOTER_ID':
-            
-            if not re.match(r'^[A-Z]{3}[0-9]{7}$'):
+            if not re.match(r'^[A-Z]{3}[0-9]{7}$', self.id_number):
                 raise ValidationError({'id_number': 'Enter a valid VOTER ID number'})
     
     def save(self, *args, **kwargs):
@@ -529,4 +531,3 @@ class Application(models.Model):
     
 
 
-    

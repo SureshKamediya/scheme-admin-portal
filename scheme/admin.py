@@ -92,7 +92,7 @@ class S3SignedUrlAdminMixin:
         opts = self.model._meta
         url_name = f'admin:{opts.app_label}_{opts.model_name}_secure_download'
         
-        file_path = obj.file.name if obj.file else 'No File'
+        file_path = file_field.name if file_field else 'No File'
         file_name = file_path.split('/')[-1] if file_path != 'No File' else 'No File'
         link_text = file_name
 
@@ -399,6 +399,9 @@ This ensures that application numbers do not overlap and remain uniquely identif
     #     """Calculate no of applications submitted so far"""
     #     return self.applications.count()
     
+    
+
+
     def get_status(self, obj):
         """Calculate current status based on dates"""
         from django.utils import timezone
@@ -509,7 +512,7 @@ class ApplicationResource(resources.ModelResource):
         return True
 
 
-class ApplicationAdmin(ImportExportModelAdmin):
+class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
     resource_class = ApplicationResource
     # List display
     list_display = [
@@ -519,13 +522,14 @@ class ApplicationAdmin(ImportExportModelAdmin):
         'scheme',
         'plot_category',
         'total_payable_amount',
-        'payment_status_badge',
-        'application_status_badge',
-        'lottery_status_badge',
+        # 'payment_status_badge',
+        # 'application_status_badge',
+        # 'lottery_status_badge',
         'application_submission_date',
         'application_status',
         'payment_status',
         'lottery_status',
+        'payment_proof_link'
     ]
     
     # List filters
@@ -644,133 +648,137 @@ class ApplicationAdmin(ImportExportModelAdmin):
     
     # Actions
     actions = [
-        'export_as_csv',
-        'export_as_excel',
+        # 'export_as_csv',
+        # 'export_as_excel',
         'mark_payment_verified',
         'mark_application_accepted',
         'mark_application_rejected',
     ]
+
+    def payment_proof_link(self, obj):
+        """Generate secure signed URL link for payment proof"""
+        return self.create_signed_link(obj, 'payment_proof')
     
-    # Custom colored badges for status fields
-    def payment_status_badge(self, obj):
-        colors = {
-            'PENDING': 'orange',
-            'VERIFIED': 'green',
-            'FAILED': 'red',
-        }
-        color = colors.get(obj.payment_status, 'gray')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
-            color,
-            obj.get_payment_status_display()
-        )
-    payment_status_badge.short_description = 'Payment Status'
+    # # Custom colored badges for status fields
+    # def payment_status_badge(self, obj):
+    #     colors = {
+    #         'PENDING': 'orange',
+    #         'VERIFIED': 'green',
+    #         'FAILED': 'red',
+    #     }
+    #     color = colors.get(obj.payment_status, 'gray')
+    #     return format_html(
+    #         '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
+    #         color,
+    #         obj.get_payment_status_display()
+    #     )
+    # # payment_status_badge.short_description = 'Payment Status'
     
-    def application_status_badge(self, obj):
-        colors = {
-            'PENDING': 'orange',
-            'ACCEPTED': 'green',
-            'REJECTED': 'red',
-        }
-        color = colors.get(obj.application_status, 'gray')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
-            color,
-            obj.get_application_status_display()
-        )
-    # application_status_badge.short_description = 'Application Status'
+    # def application_status_badge(self, obj):
+    #     colors = {
+    #         'PENDING': 'orange',
+    #         'ACCEPTED': 'green',
+    #         'REJECTED': 'red',
+    #     }
+    #     color = colors.get(obj.application_status, 'gray')
+    #     return format_html(
+    #         '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
+    #         color,
+    #         obj.get_application_status_display()
+    #     )
+    # # application_status_badge.short_description = 'Application Status'
     
-    def lottery_status_badge(self, obj):
-        colors = {
-            'NOT_CONDUCTED': 'gray',
-            'SELECTED': 'green',
-            'NOT_SELECTED': 'red',
-            'WAITLISTED': 'orange',
-        }
-        color = colors.get(obj.lottery_status, 'gray')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
-            color,
-            obj.get_lottery_status_display()
-        )
-    # lottery_status_badge.short_description = 'Lottery Status'
+    # def lottery_status_badge(self, obj):
+    #     colors = {
+    #         'NOT_CONDUCTED': 'gray',
+    #         'SELECTED': 'green',
+    #         'NOT_SELECTED': 'red',
+    #         'WAITLISTED': 'orange',
+    #     }
+    #     color = colors.get(obj.lottery_status, 'gray')
+    #     return format_html(
+    #         '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
+    #         color,
+    #         obj.get_lottery_status_display()
+    #     )
+    # # lottery_status_badge.short_description = 'Lottery Status'
     
-    # Export as CSV
-    def export_as_csv(self, request, queryset):
-        meta = self.model._meta
-        field_names = [field.name for field in meta.fields]
+    # # Export as CSV
+    # def export_as_csv(self, request, queryset):
+    #     meta = self.model._meta
+    #     field_names = [field.name for field in meta.fields]
         
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename=applications_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    #     response = HttpResponse(content_type='text/csv')
+    #     response['Content-Disposition'] = f'attachment; filename=applications_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
         
-        writer = csv.writer(response)
-        writer.writerow(field_names)
+    #     writer = csv.writer(response)
+    #     writer.writerow(field_names)
         
-        for obj in queryset:
-            writer.writerow([getattr(obj, field) for field in field_names])
+    #     for obj in queryset:
+    #         writer.writerow([getattr(obj, field) for field in field_names])
         
-        return response
-    # export_as_csv.short_description = "Export selected as CSV"
+    #     return response
+    # # export_as_csv.short_description = "Export selected as CSV"
     
-    # Export as Excel (requires openpyxl: pip install openpyxl)
-    def export_as_excel(self, request, queryset):
-        try:
-            from openpyxl import Workbook
-            from openpyxl.styles import Font, PatternFill
-        except ImportError:
-            self.message_user(request, "Please install openpyxl: pip install openpyxl", level='error')
-            return
+    # # Export as Excel (requires openpyxl: pip install openpyxl)
+    # def export_as_excel(self, request, queryset):
+    #     try:
+    #         from openpyxl import Workbook
+    #         from openpyxl.styles import Font, PatternFill
+    #     except ImportError:
+    #         self.message_user(request, "Please install openpyxl: pip install openpyxl", level='error')
+    #         return
         
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Applications"
+    #     wb = Workbook()
+    #     ws = wb.active
+    #     ws.title = "Applications"
         
-        # Get field names
-        meta = self.model._meta
-        field_names = [field.name for field in meta.fields]
-        verbose_names = [field.verbose_name.title() for field in meta.fields]
+    #     # Get field names
+    #     meta = self.model._meta
+    #     field_names = [field.name for field in meta.fields]
+    #     verbose_names = [field.verbose_name.title() for field in meta.fields]
         
-        # Write headers with styling
-        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-        header_font = Font(bold=True, color="FFFFFF")
+    #     # Write headers with styling
+    #     header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    #     header_font = Font(bold=True, color="FFFFFF")
         
-        for col_num, column_title in enumerate(verbose_names, 1):
-            cell = ws.cell(row=1, column=col_num)
-            cell.value = column_title
-            cell.fill = header_fill
-            cell.font = header_font
+    #     for col_num, column_title in enumerate(verbose_names, 1):
+    #         cell = ws.cell(row=1, column=col_num)
+    #         cell.value = column_title
+    #         cell.fill = header_fill
+    #         cell.font = header_font
         
-        # Write data rows
-        for row_num, obj in enumerate(queryset, 2):
-            for col_num, field in enumerate(field_names, 1):
-                value = getattr(obj, field)
-                # Convert datetime objects to strings
-                if hasattr(value, 'strftime'):
-                    value = value.strftime('%Y-%m-%d %H:%M:%S')
-                ws.cell(row=row_num, column=col_num, value=str(value) if value is not None else '')
+    #     # Write data rows
+    #     for row_num, obj in enumerate(queryset, 2):
+    #         for col_num, field in enumerate(field_names, 1):
+    #             value = getattr(obj, field)
+    #             # Convert datetime objects to strings
+    #             if hasattr(value, 'strftime'):
+    #                 value = value.strftime('%Y-%m-%d %H:%M:%S')
+    #             ws.cell(row=row_num, column=col_num, value=str(value) if value is not None else '')
         
-        # Auto-adjust column widths
-        for column in ws.columns:
-            max_length = 0
-            column = [cell for cell in column]
-            for cell in column:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(cell.value)
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 50)
-            ws.column_dimensions[column[0].column_letter].width = adjusted_width
+    #     # Auto-adjust column widths
+    #     for column in ws.columns:
+    #         max_length = 0
+    #         column = [cell for cell in column]
+    #         for cell in column:
+    #             try:
+    #                 if len(str(cell.value)) > max_length:
+    #                     max_length = len(cell.value)
+    #             except:
+    #                 pass
+    #         adjusted_width = min(max_length + 2, 50)
+    #         ws.column_dimensions[column[0].column_letter].width = adjusted_width
         
-        # Create response
-        response = HttpResponse(
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response['Content-Disposition'] = f'attachment; filename=applications_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    #     # Create response
+    #     response = HttpResponse(
+    #         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    #     )
+    #     response['Content-Disposition'] = f'attachment; filename=applications_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
         
-        wb.save(response)
-        return response
-    # export_as_excel.short_description = "Export selected as Excel"
+    #     wb.save(response)
+    #     return response
+    # # export_as_excel.short_description = "Export selected as Excel"
     
     # Bulk action: Mark payment as verified
     def mark_payment_verified(self, request, queryset):
