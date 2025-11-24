@@ -353,11 +353,11 @@ class SchemeResource(resources.ModelResource):
 @admin.register(Scheme)
 class SchemeAdmin(ImportExportModelAdmin):
     resource_class = SchemeResource
-    list_display = ('name', 'company', 'get_status', 'ews_plot_count', 'Lig_plot_count', 'created_at', 
+    list_display = ('id', 'name', 'company', 'get_status', 'ews_plot_count', 'Lig_plot_count', 'created_at', 
         'next_application_number',)
     list_filter = ('company', 'created_at', 'application_open_date')
     search_fields = ('name', 'address', 'phone')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('created_at', 'id')
     
     # Add inline for files
     inlines = [SchemeFilesInline]
@@ -529,7 +529,8 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
         'application_status',
         'payment_status',
         'lottery_status',
-        'payment_proof_link'
+        'payment_proof_link',
+        'payment_proof',
     ]
     
     # List filters
@@ -570,7 +571,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
             'fields': ('scheme',)
         }),
         ('Basic Details', {
-            'fields': ('applicant_name', 'father_or_husband_name', 'dob', 'mobile_number', 'email')
+            'fields': ('application_number', 'applicant_name', 'father_or_husband_name', 'dob', 'mobile_number', 'email')
         }),
         ('Identity Details', {
             'fields': ('id_type', 'id_number', 'aadhar_number')
@@ -628,6 +629,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
     
     # Read-only fields
     readonly_fields = [
+        'application_number',
         'plot_category',
         'registration_fees',
         'processing_fees',
