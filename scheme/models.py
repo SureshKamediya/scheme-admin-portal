@@ -339,6 +339,7 @@ class Application(models.Model):
     payer_account_holder_name = models.CharField(max_length=200)
     payer_bank_name = models.CharField(max_length=200)
     
+    # models.py or utils.py
     def payment_proof_upload_path(instance, filename):
         """
         Generate dynamic upload path for payment proofs.
@@ -360,10 +361,10 @@ class Application(models.Model):
         # # Get scheme name and make it URL-safe
         # scheme_name = slugify(instance.scheme.name)  # Converts spaces, special chars
         
-        path = f'applications/{instance.scheme.id}/payment_proofs/payment_proofs_{instance.scheme.id}_{instance.application_number}{ext}'
+        path = f'applications/{instance.scheme}/payment_proofs/payment_proofs_{instance.scheme}_{instance.application_number}{ext}'
         print(path)
         # Build the path
-        return f'applications/{instance.scheme.id}/payment_proofs/payment_proofs_{instance.scheme.id}_{instance.application_number}{ext}'
+        return f'applications/{instance.scheme}/payment_proofs/payment_proofs_{instance.scheme}_{instance.application_number}{ext}'
     
 
     def identity_document_upload_path(instance, filename):
@@ -429,36 +430,10 @@ class Application(models.Model):
         choices=LOTTERY_STATUS_CHOICES, 
         default='NOT_CONDUCTED'
     )
-    def application_pdf_upload_path(instance, filename):
-        """
-        Generate dynamic upload path for payment proofs.
-        Path: applications/<scheme-name>/payment_proofs/<application_no>.<extension>
-        
-        Args:
-            instance: Application model instance
-            filename: Original uploaded filename
-            
-        Returns:
-            str: S3 path like 'applications/PM-KISAN/payment_proofs/APP001.jpg'
-        """
-        import os
-        from django.utils.text import slugify
-        
-        # Get file extension
-        ext = os.path.splitext(filename)[1].lower()  # e.g., '.jpg', '.pdf'
-        
-        # # Get scheme name and make it URL-safe
-        # scheme_name = slugify(instance.scheme.name)  # Converts spaces, special chars
-        
-        path = f'applications/{instance.scheme.id}/acknowledge_pdfs/Acknowledgement_{instance.scheme.id}_{instance.application_number}{ext}'
-        print(path)
-        # Build the path
-        return f'applications/{instance.scheme.id}/acknowledge_pdfs/Acknowledgement_{instance.scheme.id}_{instance.application_number}{ext}'
     
     # Application PDF (Generated after submission)
     application_pdf = models.FileField(
-        upload_to=application_pdf_upload_path, 
-        storage=S3Boto3Storage(),
+        upload_to='application_pdfs/',
         blank=True,
         null=True,
         verbose_name='Application PDF'
