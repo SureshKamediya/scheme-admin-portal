@@ -17,17 +17,18 @@ from storages.backends.s3boto3 import S3Boto3Storage
 
 class Scheme(models.Model):
 
-    # ask them to add more company names. 
-    class company_choices(models.TextChoices):
-        riyasat_infra = "riyasat infra", "riyasat infra"
-        riyasal_llp = "riyasal llp", "riyasal llp"
-        new_infra = "new infra", "new infra"
-        default = 'other', 'other'
+    # ID Type choices
+    COMPANY_CHOICES = [
+        ("riyasat-infra", "Riyasat Infra Developers Pvt. Ltd."),
+        ("riyasat-infratech", "Riyasat Infratech Developers LLP"),
+        ( "new-path", "New Path Developers LLP"),
+        ("gokul-kripa", 'Gokul Kripa Colonizers and Developers Pvt. Ltd.'),
+        ('other', 'other'),
+    ]
 
     company = models.CharField(
         max_length=100,
-        choices=company_choices.choices,
-        default=company_choices.default
+        choices=COMPANY_CHOICES
     )
     name = models.CharField(max_length=255, unique=True, blank=False, null=False, db_index=True)
 
@@ -194,14 +195,13 @@ from django.db import models, transaction
 from django.db.models import F
 
 class Application(models.Model):
-    
+
     # ID Type choices
     ID_TYPE_CHOICES = [
         ('PAN_CARD', 'Pan Card'),
-        ('RATION_CARD', 'Ration Card'),
-        ('JAN_AADHAR', 'Jan Aadhar Card'),
         ('VOTER_ID', 'Voter ID Card'),
         ('DRIVING_LICENSE', 'Driving License'),
+        ('RATION_CARD', 'Ration Card'),
     ]
 
     # Income choices
@@ -216,16 +216,18 @@ class Application(models.Model):
         ('LIG', 'Low Income Group'),
     ]
     
-    # Sub-category choices 
     SUB_CATEGORY_CHOICES = [
-        ('EWS_GENERAL', 'EWS - General'),
-        ('EWS_SC', 'EWS - SC'),
-        ('EWS_ST', 'EWS - ST'),
-        ('EWS_OBC', 'EWS - OBC'),
-        ('LIG_GENERAL', 'LIG - General'),
-        ('LIG_SC', 'LIG - SC'),
-        ('LIG_ST', 'LIG - ST'),
-        ('LIG_OBC', 'LIG - OBC'),
+        ("un-reserved", "Un-Reserved"),
+        ("un-reserved-dls", "Un-Reserved (Destitute & Landless Single)"),
+        ("un-reserved-handicap", "Un-Reserved Handicap"),
+        ("gov-employees", "Government Employees"),
+        ("journalist", "Journalist"),
+        ("other-soldiers", "Other soldiers (including ex-servicemen)"),
+        ("sc", "Scheduled Caste"),
+        ("st", "Scheduled Tribe"),
+        ("soldier-handicapped", "Soldier Handicapped"),
+        ("soldier-widow-dependent", "Soldier (Widow & Dependent)"),
+        ("transgender", "Transgender"),
     ]
     
     # Payment mode choices

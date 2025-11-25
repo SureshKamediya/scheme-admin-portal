@@ -476,6 +476,7 @@ class ApplicationResource(resources.ModelResource):
             'postal_address_pincode',
             'annual_income',
             'plot_category',
+            'sub_category',
             'registration_fees',
             'processing_fees',
             'total_payable_amount',
@@ -521,6 +522,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
         'mobile_number',
         'scheme',
         'plot_category',
+        'sub_category',
         'total_payable_amount',
         # 'payment_status_badge',
         # 'application_status_badge',
@@ -537,6 +539,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
     list_filter = [
         'scheme',
         'plot_category',
+        'sub_category',
         'annual_income',
         'application_status',
         'payment_status',
@@ -585,7 +588,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
             )
         }),
         ('Income & Plot Category', {
-            'fields': ('annual_income', 'plot_category')
+            'fields': ('annual_income', 'plot_category', 'sub_category')
         }),
         ('Fee Details', {
             'fields': ('registration_fees', 'processing_fees', 'total_payable_amount'),
