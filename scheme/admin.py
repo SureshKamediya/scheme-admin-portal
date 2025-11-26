@@ -353,11 +353,11 @@ class SchemeResource(resources.ModelResource):
 @admin.register(Scheme)
 class SchemeAdmin(ImportExportModelAdmin):
     resource_class = SchemeResource
-    list_display = ('name', 'company', 'get_status', 'ews_plot_count', 'Lig_plot_count', 'created_at', 
+    list_display = ('id', 'name', 'company', 'get_status', 'ews_plot_count', 'Lig_plot_count', 'created_at', 
         'next_application_number',)
     list_filter = ('company', 'created_at', 'application_open_date')
     search_fields = ('name', 'address', 'phone')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('created_at', 'id')
     
     # Add inline for files
     inlines = [SchemeFilesInline]
@@ -476,6 +476,7 @@ class ApplicationResource(resources.ModelResource):
             'postal_address_pincode',
             'annual_income',
             'plot_category',
+            'sub_category',
             'registration_fees',
             'processing_fees',
             'total_payable_amount',
@@ -521,6 +522,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
         'mobile_number',
         'scheme',
         'plot_category',
+        'sub_category',
         'total_payable_amount',
         # 'payment_status_badge',
         # 'application_status_badge',
@@ -529,13 +531,15 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
         'application_status',
         'payment_status',
         'lottery_status',
-        'payment_proof_link'
+        'payment_proof_link',
+        # 'payment_proof',
     ]
     
     # List filters
     list_filter = [
         'scheme',
         'plot_category',
+        'sub_category',
         'annual_income',
         'application_status',
         'payment_status',
@@ -570,7 +574,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
             'fields': ('scheme',)
         }),
         ('Basic Details', {
-            'fields': ('applicant_name', 'father_or_husband_name', 'dob', 'mobile_number', 'email')
+            'fields': ('application_number', 'applicant_name', 'father_or_husband_name', 'dob', 'mobile_number', 'email')
         }),
         ('Identity Details', {
             'fields': ('id_type', 'id_number', 'aadhar_number')
@@ -584,7 +588,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
             )
         }),
         ('Income & Plot Category', {
-            'fields': ('annual_income', 'plot_category')
+            'fields': ('annual_income', 'plot_category', 'sub_category')
         }),
         ('Fee Details', {
             'fields': ('registration_fees', 'processing_fees', 'total_payable_amount'),
@@ -628,6 +632,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
     
     # Read-only fields
     readonly_fields = [
+        'application_number',
         'plot_category',
         'registration_fees',
         'processing_fees',
@@ -658,6 +663,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
     def payment_proof_link(self, obj):
         """Generate secure signed URL link for payment proof"""
         return self.create_signed_link(obj, 'payment_proof')
+    payment_proof_link.short_description = 'Transaction Screenshot / DD Photo'
     
     # # Custom colored badges for status fields
     # def payment_status_badge(self, obj):

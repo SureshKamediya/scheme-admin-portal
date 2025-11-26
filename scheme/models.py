@@ -17,17 +17,18 @@ from storages.backends.s3boto3 import S3Boto3Storage
 
 class Scheme(models.Model):
 
-    # ask them to add more company names. 
-    class company_choices(models.TextChoices):
-        riyasat_infra = "riyasat infra", "riyasat infra"
-        riyasal_llp = "riyasal llp", "riyasal llp"
-        new_infra = "new infra", "new infra"
-        default = 'other', 'other'
+    # ID Type choices
+    class COMPANY_CHOICES(models.TextChoices):
+        riyasat_infra = "riyasat-infra", "Riyasat Infra Developers Pvt. Ltd."
+        riyasat_infratech = "riyasat-infratech", "Riyasat Infratech Developers LLP"
+        new_path = "new-path", "New Path Developers LLP"
+        gokul_kripa = "gokul-kripa", "Gokul Kripa Colonizers and Developers Pvt. Ltd."
+        other = "other", "other"
+    
 
     company = models.CharField(
         max_length=100,
-        choices=company_choices.choices,
-        default=company_choices.default
+        choices=COMPANY_CHOICES
     )
     name = models.CharField(max_length=255, unique=True, blank=False, null=False, db_index=True)
 
@@ -135,24 +136,22 @@ class SchemeFiles(models.Model):
         # Build the path
         return f'scheme_files/{instance.scheme.id}/scheme{instance.scheme.id}_{filename}'
     
-    class file_type_choices(models.TextChoices):
-        terms__condations = 'terms and condations', 'terms and condations'
-        scheme_details = 'scheme details', 'scheme details'
-        successful_applicants = "successful_applicants", "successful_applicants"
-        Rejected_applicants = "Rejected_applicants", "Rejected_applicants"
-        lottery_winners = "lottery_winners", "lottery_winners"
-        news_papaer_cut = "news_papaer_cut", "news_papaer_cut"
-        other = 'other', 'other'
-    
-
+    class FILE_TYPE_CHOICES(models.TextChoices):
+        terms_and_conditions = 'terms_and_conditions', 'Terms and Conditions'
+        scheme_details = 'scheme_details', 'Scheme Details'
+        successful_applicants = 'successful_applicants', 'Successful Applicants'
+        rejected_applicants = 'rejected_applicants', 'Rejected Applicants'
+        lottery_winners = 'lottery_winners', 'Lottery Winners'
+        newspaper_cut = 'newspaper_cut', 'Newspaper Cuttings'
+        payment_qr_code = 'payment_qr_code', 'Payment QR Code'
+        other = 'other', 'Other'
     
     scheme = models.ForeignKey(Scheme, related_name='files', on_delete=models.CASCADE)
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     
     file_choice = models.CharField(
         max_length=100,
-        choices=file_type_choices.choices,
-        default=file_type_choices.other
+        choices=FILE_TYPE_CHOICES
     )
 
     file = models.FileField(
@@ -168,8 +167,8 @@ class SchemeFiles(models.Model):
         return self.name
     
     def clean(self):
-        if self.file_choice != self.file_type_choices.other:
-            self.name = self.file_choice
+        if self.file_choice != self.FILE_TYPE_CHOICES.other:
+            self.name = self.FILE_TYPE_CHOICES(self.file_choice).label
         # Check for duplicate before save
         if SchemeFiles.objects.filter(
             scheme=self.scheme, 
@@ -194,67 +193,53 @@ from django.db import models, transaction
 from django.db.models import F
 
 class Application(models.Model):
-    
-    # ID Type choices
-    ID_TYPE_CHOICES = [
-        ('PAN_CARD', 'Pan Card'),
-        ('RATION_CARD', 'Ration Card'),
-        ('JAN_AADHAR', 'Jan Aadhar Card'),
-        ('VOTER_ID', 'Voter ID Card'),
-        ('DRIVING_LICENSE', 'Driving License'),
-    ]
+    class ID_TYPE_CHOICES(models.TextChoices):
+        PAN_CARD = 'PAN_CARD', 'Pan Card'
+        VOTER_ID = 'VOTER_ID', 'Voter ID Card'
+        DRIVING_LICENSE = 'DRIVING_LICENSE', 'Driving License'
+        RATION_CARD = 'RATION_CARD', 'Ration Card'
 
-    # Income choices
-    INCOME_CHOICES = [
-        ('UP_TO_3L', 'Up to 3 Lakhs'),
-        ('3L_6L', '3 Lakhs to 6 Lakhs'),
-    ]
+    class INCOME_CHOICES(models.TextChoices):
+        ZERO_TO_THREE = '0L_3L', '0 to 3 Lakhs'
+        THREE_TO_SIX = '3L_6L', '3 Lakhs to 6 Lakhs'
+
+    class PLOT_CATEGORY_CHOICES(models.TextChoices):
+        EWS = 'EWS', 'Economically Weaker Section'
+        LIG = 'LIG', 'Low Income Group'
+
+    class SUB_CATEGORY_CHOICES(models.TextChoices):
+        UN_RESERVED = 'un-reserved', 'Un-Reserved'
+        UN_RESERVED_DLS = 'un-reserved-dls', 'Un-Reserved (Destitute & Landless Single)'
+        UN_RESERVED_HANDICAP = 'un-reserved-handicap', 'Un-Reserved Handicap'
+        GOV_EMPLOYEES = 'gov-employees', 'Government Employees'
+        JOURNALIST = 'journalist', 'Journalist'
+        OTHER_SOLDIERS = 'other-soldiers', 'Other soldiers (including ex-servicemen)'
+        SC = 'sc', 'Scheduled Caste'
+        ST = 'st', 'Scheduled Tribe'
+        SOLDIER_HANDICAPPED = 'soldier-handicapped', 'Soldier Handicapped'
+        SOLDIER_WIDOW_DEPENDENT = 'soldier-widow-dependent', 'Soldier (Widow & Dependent)'
+        TRANSGENDER = 'transgender', 'Transgender'
+
+    class PAYMENT_MODE_CHOICES(models.TextChoices):
+        DD = 'DD', 'Demand Draft'
+        UPI = 'UPI', 'UPI'
+
+    class APPLICATION_STATUS_CHOICES(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        ACCEPTED = 'ACCEPTED', 'Accepted'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    class PAYMENT_STATUS_CHOICES(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        VERIFIED = 'VERIFIED', 'Verified'
+        FAILED = 'FAILED', 'Failed'
+
+    class LOTTERY_STATUS_CHOICES(models.TextChoices):
+        NOT_CONDUCTED = 'NOT_CONDUCTED', 'Not Conducted'
+        SELECTED = 'SELECTED', 'Selected'
+        NOT_SELECTED = 'NOT_SELECTED', 'Not Selected'
+        WAITLISTED = 'WAITLISTED', 'Waitlisted'
     
-    # Plot category choices (auto-filled based on income)
-    PLOT_CATEGORY_CHOICES = [
-        ('EWS', 'Economically Weaker Section'),
-        ('LIG', 'Low Income Group'),
-    ]
-    
-    # Sub-category choices 
-    SUB_CATEGORY_CHOICES = [
-        ('EWS_GENERAL', 'EWS - General'),
-        ('EWS_SC', 'EWS - SC'),
-        ('EWS_ST', 'EWS - ST'),
-        ('EWS_OBC', 'EWS - OBC'),
-        ('LIG_GENERAL', 'LIG - General'),
-        ('LIG_SC', 'LIG - SC'),
-        ('LIG_ST', 'LIG - ST'),
-        ('LIG_OBC', 'LIG - OBC'),
-    ]
-    
-    # Payment mode choices
-    PAYMENT_MODE_CHOICES = [
-        ('DD', 'Demand Draft'),
-        ('UPI', 'UPI'),
-    ]
-    
-    # Application status choices
-    APPLICATION_STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('ACCEPTED', 'Accepted'),
-        ('REJECTED', 'Rejected'),
-    ]
-    
-    # Payment status choices
-    PAYMENT_STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('VERIFIED', 'Verified'),
-        ('FAILED', 'Failed'),
-    ]
-    
-    # Lottery status choices
-    LOTTERY_STATUS_CHOICES = [
-        ('NOT_CONDUCTED', 'Not Conducted'),
-        ('SELECTED', 'Selected'),
-        ('NOT_SELECTED', 'Not Selected'),
-        ('WAITLISTED', 'Waitlisted'),
-    ]
 
     # Basic Details
     scheme = models.ForeignKey('Scheme', on_delete=models.PROTECT, related_name='applications')

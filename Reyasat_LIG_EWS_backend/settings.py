@@ -17,6 +17,9 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# DEBUG = False
+# from dotenv import load_dotenv
+# load_dotenv(BASE_DIR / ".env")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
@@ -86,8 +89,9 @@ WSGI_APPLICATION = 'Reyasat_LIG_EWS_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+DATABASES =  os.environ.get('DATABASES', 'RDS') 
 
-if DEBUG:
+if DATABASES == "SQLITE":
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

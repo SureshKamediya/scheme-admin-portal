@@ -45,6 +45,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     id_type_display = serializers.CharField(source='get_id_type_display', read_only=True)
     annual_income_display = serializers.CharField(source='get_annual_income_display', read_only=True)
     plot_category_display = serializers.CharField(source='get_plot_category_display', read_only=True)
+    sub_category_display = serializers.CharField(source='get_sub_category_display', read_only=True)
     payment_mode_display = serializers.CharField(source='get_payment_mode_display', read_only=True)
     application_status_display = serializers.CharField(source='get_application_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
@@ -89,6 +90,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
             # Auto-filled fields
             'plot_category',
             'plot_category_display',
+            'sub_category',
+            'sub_category_display',
             'registration_fees',
             'processing_fees',
             'total_payable_amount',
@@ -136,6 +139,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'application_number',
             'plot_category',
+            'sub_category',
             'registration_fees',
             'processing_fees',
             'total_payable_amount',
