@@ -532,7 +532,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
         'payment_status',
         'lottery_status',
         'payment_proof_link',
-        'payment_proof',
+        # 'payment_proof',
     ]
     
     # List filters
@@ -663,6 +663,7 @@ class ApplicationAdmin(S3SignedUrlAdminMixin, ImportExportModelAdmin):
     def payment_proof_link(self, obj):
         """Generate secure signed URL link for payment proof"""
         return self.create_signed_link(obj, 'payment_proof')
+    payment_proof_link.short_description = 'Transaction Screenshot / DD Photo'
     
     # # Custom colored badges for status fields
     # def payment_status_badge(self, obj):
