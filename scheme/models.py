@@ -457,6 +457,8 @@ class Application(models.Model):
         unique_together = (
             ('scheme', 'mobile_number'),
             ('scheme', 'application_number'),
+            ('scheme', 'aadhar_number'),
+            ('scheme', 'applicant_account_number'),
         )
         ordering = ['-application_submission_date']
         verbose_name = 'Application'
