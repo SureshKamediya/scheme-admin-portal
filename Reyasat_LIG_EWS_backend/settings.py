@@ -89,7 +89,7 @@ WSGI_APPLICATION = 'Reyasat_LIG_EWS_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES =  os.environ.get('DATABASES', 'RDS') 
+DATABASES =  os.environ.get('DATABASES', 'supabase') 
 
 if DATABASES == "SQLITE":
     DATABASES = {
@@ -98,7 +98,7 @@ if DATABASES == "SQLITE":
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-else:
+elif DATABASES == "rds":
     DATABASES = {
         'default': {
             'ENGINE': os.environ.get('DATABASES_ENGINE'),
@@ -109,15 +109,33 @@ else:
             'PORT': '5432',           # Default PostgreSQL port
             'OPTIONS': { 
                 'connect_timeout': 10, 
-                'options': '-c statement_timeout=30000 -c lock_timeout=10000' 
+                'options': '-c statement_timeout=30000 -c lock_timeout=10000',
+            },
+            'CONN_MAX_AGE': 600,
+            'TEST': {
+                'NAME': 'test_scheme_1_db',
+            },
+        },  
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DATABASES_NAME'),
+            'USER': os.environ.get('DATABASES_USER'),
+            'PASSWORD': os.environ.get('DATABASES_PASSWORD'),
+            'HOST': os.environ.get('DATABASES_HOST'),
+            'PORT': '5432',
+            'OPTIONS': { 
+                'connect_timeout': 10, 
+                'options': '-c statement_timeout=30000 -c lock_timeout=10000',
+                'sslmode': 'require'
             },
             'CONN_MAX_AGE': 600,
             'TEST': {
                 'NAME': 'test_scheme_1_db',
             },
         },
-        
-        
     }
 
 
